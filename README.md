@@ -1,2 +1,12 @@
-# roto-baller
-The NFL Survivor Grid Tool is a web-based application designed to assist users in making optimal weekly picks for NFL survivor pools. The tool will combine NFL team schedules, win probabilities, consensus pick percentages, and expected value calculations, while offering season-long strategic planning to maximize survival chances. The goal is to create a user-friendly resource that gives participants a competitive edge.
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
