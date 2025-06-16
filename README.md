@@ -1,1 +1,2 @@
 # roto-baller
+The NFL Survivor Grid Tool is a web-based application designed to assist users in making optimal weekly picks for NFL survivor pools. The tool will combine NFL team schedules, win probabilities, consensus pick percentages, and expected value calculations, while offering season-long strategic planning to maximize survival chances. The goal is to create a user-friendly resource that gives participants a competitive edge.
