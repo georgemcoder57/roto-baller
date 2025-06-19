@@ -57,8 +57,8 @@ export const GridWrapper = styled.div`
 
   .point-value {
     position: absolute;
-    right: 0;
-    bottom: 4px;
+    right: 6px;
+    bottom: 6px;
     font-size: 10px;
     font-weight: 500;
     color: #797979;
