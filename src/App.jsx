@@ -180,8 +180,8 @@ function App() {
                 row[`week${game.Week}`].type = "sc";
             }
           }
-          customRows.push(row);
         });
+        customRows.push(row);
       });
       console.log("---------", customRows);
       setRowData(customRows);
