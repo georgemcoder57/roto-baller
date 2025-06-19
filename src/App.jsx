@@ -43,10 +43,14 @@ function App() {
 
   useEffect(() => {
     fetchTeamMemberList();
-    fetchFullWeekSchedule();
-    fetchKickOffTime();
     customColDefs();
   }, []);
+
+  useEffect(() => {
+    if (teamMembers.length > 0) {
+      fetchFullWeekSchedule();
+    }
+  }, [teamMembers]);
 
   const customColDefs = () => {
     let customColumns = [...colDefs];
