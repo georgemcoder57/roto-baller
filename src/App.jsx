@@ -22,6 +22,7 @@ function App() {
     label: "Week 1",
     value: 1,
   });
+  const [fullWeeks, setFullWeeks] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fullWeekSchedule, setFullWeekSchedule] = useState([]);
@@ -155,7 +156,26 @@ function App() {
       );
       const { data } = await API.get();
       const transformedData = transformWeeklySchedule(data);
-      console.log(data);
+
+      const customWeeks = transformedData
+        .reduce((weeks, team) => {
+          team.games.forEach((game) => {
+            if (!weeks || !weeks.find((w) => w.value === game.Week))
+              weeks = [
+                ...weeks,
+                {
+                  label: "Week " + game.Week.toString(),
+                  value: game.Week,
+                },
+              ];
+          });
+          return weeks;
+        }, [])
+        .sort((a, b) => {
+          return a.value - b.value;
+        });
+      setFullWeeks(customWeeks);
+
       let customRows = [];
       transformedData.forEach((team) => {
         let row = {};
@@ -193,7 +213,6 @@ function App() {
         });
         customRows.push(row);
       });
-      console.log("---------", customRows);
       setRowData(customRows);
       setLoading(false);
     } catch (e) {
@@ -212,7 +231,7 @@ function App() {
       <TopWrapper>
         <Select
           prefix={<img src={Calendar} width="15px" height="16px" alt="" />}
-          options={FULL_WEEKS}
+          options={fullWeeks}
           value={currentWeek.value}
           onChange={handleChangeWeek}
           style={{ width: "170px", height: "44px", margin: "10px 0px" }}

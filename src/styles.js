@@ -67,6 +67,7 @@ export const GridWrapper = styled.div`
 
   .ag-cell {
     padding: 0;
+    text-align: center;
   }
 
   .sd {
