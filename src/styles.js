@@ -36,3 +36,44 @@ export const AppTitle = styled.div`
   font-size: 38px;
   line-height: 100%;
 `;
+
+export const GridWrapper = styled.div`
+  height: 750px;
+
+  .sd,
+  .sc,
+  .normal {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .name-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: black;
+  }
+
+  .point-value {
+    position: absolute;
+    right: 0;
+    bottom: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #797979;
+    line-height: 100%;
+  }
+
+  .ag-cell {
+    padding: 0;
+  }
+
+  .sd {
+    background: #eeffe5;
+  }
+
+  .sc {
+    background: #aaff80;
+  }
+`;

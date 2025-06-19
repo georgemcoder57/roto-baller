@@ -7,7 +7,13 @@ import { API, setAPIBaseURL } from "./services/ApiService";
 import { Select, Switch } from "antd";
 import Calendar from "./assets/calendar.png";
 import { FULL_WEEKS } from "./data";
-import { AppTitle, ToolOutline, ToolText, TopWrapper } from "./styles";
+import {
+  AppTitle,
+  GridWrapper,
+  ToolOutline,
+  ToolText,
+  TopWrapper,
+} from "./styles";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -68,7 +74,7 @@ function App() {
           <div className="point-value">{props.data[`week${i + 1}`]?.point}</div>
         </div>
       ),
-      width: 70,
+      width: 80,
     }));
     setColDefs([...customColumns, ...weekCols]);
   };
@@ -149,7 +155,7 @@ function App() {
       );
       const { data } = await API.get();
       const transformedData = transformWeeklySchedule(data);
-
+      console.log(data);
       let customRows = [];
       transformedData.forEach((team) => {
         let row = {};
@@ -162,7 +168,7 @@ function App() {
         team.games.forEach((game) => {
           row[`week${game.Week}`] = {};
           if (game.GlobalHomeTeamID !== team.id) {
-            row[`week${game.Week}`].name = "@ " + game.HomeTeam;
+            row[`week${game.Week}`].name = "@" + game.HomeTeam;
             row[`week${game.Week}`].point = (-game.PointSpread || 0).toString(); // point spread is referring to home team
           } else if (game.AwayTeam == "BYE") {
             // a "BYE" in not a game + no teams called "BYE"
@@ -232,9 +238,9 @@ function App() {
           <ToolText>Spreads</ToolText>
         </ToolOutline>
       </TopWrapper>
-      <div style={{ height: 750 }}>
+      <GridWrapper>
         <AgGridReact rowData={rowData} columnDefs={colDefs} loading={loading} />
-      </div>
+      </GridWrapper>
     </>
   );
 }
