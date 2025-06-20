@@ -59,20 +59,28 @@ function App() {
     }
   }, [teamMembers]);
 
+  const getClassName = (value) => {
+    if (value <= 3) {
+      return "step-1";
+    } else if (value > 3 && value <= 7) {
+      return "step-2";
+    } else if (value > 7 && value <= 10) {
+      return "step-3";
+    } else if (value > 10 && value <= 13) {
+      return "step-4";
+    } else if (value > 13) {
+      return "step-5";
+    }
+  };
+
   const customColDefs = () => {
     let customColumns = [...colDefs];
     const weekCols = Array.from({ length: 18 }, (_, i) => ({
       headerName: `${i + 1}`,
       cellRenderer: (props) => (
-        <div
-          className={`${
-            props.data[`week${i + 1}`].type
-              ? props.data[`week${i + 1}`].type
-              : "normal"
-          }`}
-        >
+        <div className={getClassName(props.data[`week${i + 1}`].point)}>
           <div className="name-value">{props.data[`week${i + 1}`].name}</div>
-          <div className="point-value">{props.data[`week${i + 1}`]?.point}</div>
+          <div className="point-value">{props.data[`week${i + 1}`].point}</div>
         </div>
       ),
       width: 80,

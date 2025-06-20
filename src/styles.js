@@ -70,11 +70,20 @@ export const GridWrapper = styled.div`
     text-align: center;
   }
 
-  .sd {
-    background: #eeffe5;
+  .step-1 {
+    background: #fdfffd;
   }
 
-  .sc {
-    background: #aaff80;
+  .step-2 {
+    background: #d5ffd5;
+  }
+  .step-3 {
+    background: #aeffae;
+  }
+  .step-4 {
+    background: #82ff82;
+  }
+  .step-5 {
+    background: #4cff4c;
   }
 `;
