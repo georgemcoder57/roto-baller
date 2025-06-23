@@ -70,6 +70,26 @@ export const GridWrapper = styled.div`
     text-align: center;
   }
 
+  .hide-spreads .point-value {
+    display: none;
+  }
+
+  .show-spreads .point-value {
+    display: block;
+  }
+
+  .gray {
+    background: lightgray;
+  }
+
+  .gray .name-value {
+    color: #b0b0b0;
+  }
+
+  .gray .point-value {
+    color: #b0b0b0;
+  }
+
   .step-1 {
     background: #fdfffd;
   }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react"; // React Data Grid Component
 
@@ -25,10 +25,15 @@ function App() {
   const [fullWeeks, setFullWeeks] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [fullWeekSchedule, setFullWeekSchedule] = useState([]);
   const [kickOffTime, setKickOffTime] = useState([]);
-  const [spit, setSpit] = useState([]);
   const [rowData, setRowData] = useState([]);
+  const [showOptions, setShowOptions] = useState({
+    away: true,
+    divisional: true,
+    thursday: true,
+    monday: true,
+    spreads: true,
+  });
 
   // Column Definitions: Defines the columns to be displayed.
   const [colDefs, setColDefs] = useState([
@@ -50,7 +55,6 @@ function App() {
 
   useEffect(() => {
     fetchTeamMemberList();
-    customColDefs();
   }, []);
 
   useEffect(() => {
@@ -59,34 +63,73 @@ function App() {
     }
   }, [teamMembers]);
 
-  const getClassName = (value) => {
-    if (value <= 3) {
-      return "step-1";
-    } else if (value > 3 && value <= 7) {
-      return "step-2";
-    } else if (value > 7 && value <= 10) {
-      return "step-3";
-    } else if (value > 10 && value <= 13) {
-      return "step-4";
-    } else if (value > 13) {
-      return "step-5";
+  const getClassName = (cellData) => {
+    const cellDate = new Date(cellData.dateTime);
+    let className = "show-spreads";
+
+    // getDay() returns 1 for Monday (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+    const isMonday = cellDate.getDay() === 1;
+    const isThursday = cellDate.getDay() === 4;
+
+    if (!showOptions.spreads) {
+      className = "hide-spreads";
     }
+
+    if (cellData.isAway) {
+      className += showOptions.away ? "" : " gray";
+    }
+
+    if (isMonday) {
+      className += showOptions.monday ? "" : " gray";
+    }
+
+    if (isThursday) {
+      className += showOptions.thursday ? "" : " gray";
+    }
+
+    if (cellData.type === "sd") {
+      className += showOptions.divisional ? "" : " gray";
+    }
+
+    if (!className.includes("gray")) {
+      const point = cellData.point;
+      if (point <= 3) {
+        className += " step-1";
+      } else if (point > 3 && point <= 7) {
+        className += " step-2";
+      } else if (point > 7 && point <= 10) {
+        className += " step-3";
+      } else if (point > 10 && point <= 13) {
+        className += " step-4";
+      } else if (point > 13) {
+        className += " step-5";
+      }
+    }
+
+    return className;
   };
 
-  const customColDefs = () => {
+  const customColDefs = useMemo(() => {
     let customColumns = [...colDefs];
-    const weekCols = Array.from({ length: 18 }, (_, i) => ({
-      headerName: `${i + 1}`,
-      cellRenderer: (props) => (
-        <div className={getClassName(props.data[`week${i + 1}`].point)}>
-          <div className="name-value">{props.data[`week${i + 1}`].name}</div>
-          <div className="point-value">{props.data[`week${i + 1}`].point}</div>
-        </div>
-      ),
-      width: 80,
-    }));
-    setColDefs([...customColumns, ...weekCols]);
-  };
+    const weekCols = Array.from({ length: 18 }, (_, i) => i + 1)
+      .filter((weekNum) => weekNum >= currentWeek.value)
+      .map((weekNum) => ({
+        headerName: `${weekNum}`,
+        field: `week${weekNum}`,
+        cellRenderer: (props) => (
+          <div className={getClassName(props.data[`week${weekNum}`])}>
+            <div className="name-value">
+              {props.data[`week${weekNum}`].name}
+            </div>
+            <div className="point-value">
+              {props.data[`week${weekNum}`].point}
+            </div>
+          </div>
+        ),
+        width: 80,
+      }));
+    return [...customColumns, ...weekCols];
+  }, [showOptions, currentWeek]);
 
   const fetchTeamMemberList = async () => {
     try {
@@ -185,6 +228,7 @@ function App() {
       setFullWeeks(customWeeks);
 
       let customRows = [];
+      console.log("transformedData", transformedData);
       transformedData.forEach((team) => {
         let row = {};
         row.name = team.name;
@@ -198,13 +242,18 @@ function App() {
           if (game.GlobalHomeTeamID !== team.id) {
             row[`week${game.Week}`].name = "@" + game.HomeTeam;
             row[`week${game.Week}`].point = (-game.PointSpread || 0).toString(); // point spread is referring to home team
+            row[`week${game.Week}`].isAway = true;
           } else if (game.AwayTeam == "BYE") {
             // a "BYE" in not a game + no teams called "BYE"
             row[`week${game.Week}`].name = "BYE";
+            row[`week${game.Week}`].isAway = false;
           } else {
             row[`week${game.Week}`].name = game.AwayTeam;
-            row[`week${game.Week}`].point = (game.PointSpread || 0).toString(); // point spread is referring to home team
+            row[`week${game.Week}`].point = (game.PointSpread || 0).toString(); // point spread is referring to away team
+            row[`week${game.Week}`].isAway = false;
           }
+
+          row[`week${game.Week}`].dateTime = game.DateTime;
 
           if (game.AwayTeam !== "BYE") {
             const homeTeamInfo = teamMembers.find((t) => t.TeamID === team.id);
@@ -233,6 +282,13 @@ function App() {
     setCurrentWeek(option);
   };
 
+  const handleToggle = (checked, type) => {
+    setShowOptions({
+      ...showOptions,
+      [type]: checked,
+    });
+  };
+
   return (
     <>
       <AppTitle>NFL Survivor Grid - {currentWeek.label}</AppTitle>
@@ -245,28 +301,47 @@ function App() {
           style={{ width: "170px", height: "44px", margin: "10px 0px" }}
         />
         <ToolOutline>
-          <Switch />
+          <Switch
+            checked={showOptions.away}
+            onChange={(checked) => handleToggle(checked, "away")}
+          />
           <ToolText>Away Games</ToolText>
         </ToolOutline>
         <ToolOutline>
-          <Switch />
+          <Switch
+            checked={showOptions.divisional}
+            onChange={(checked) => handleToggle(checked, "divisional")}
+          />
           <ToolText>Divisional Games</ToolText>
         </ToolOutline>
         <ToolOutline>
-          <Switch />
+          <Switch
+            checked={showOptions.thursday}
+            onChange={(checked) => handleToggle(checked, "thursday")}
+          />
           <ToolText>Thursday Games</ToolText>
         </ToolOutline>
         <ToolOutline>
-          <Switch />
+          <Switch
+            checked={showOptions.monday}
+            onChange={(checked) => handleToggle(checked, "monday")}
+          />
           <ToolText>Monday Games</ToolText>
         </ToolOutline>
         <ToolOutline>
-          <Switch />
+          <Switch
+            checked={showOptions.spreads}
+            onChange={(checked) => handleToggle(checked, "spreads")}
+          />
           <ToolText>Spreads</ToolText>
         </ToolOutline>
       </TopWrapper>
       <GridWrapper>
-        <AgGridReact rowData={rowData} columnDefs={colDefs} loading={loading} />
+        <AgGridReact
+          rowData={rowData}
+          columnDefs={customColDefs}
+          loading={loading}
+        />
       </GridWrapper>
     </>
   );
