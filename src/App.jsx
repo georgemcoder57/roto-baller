@@ -6,10 +6,11 @@ import "./App.css";
 import { API, setAPIBaseURL } from "./services/ApiService";
 import { Select, Switch } from "antd";
 import Calendar from "./assets/calendar.png";
-import { FULL_WEEKS } from "./data";
 import {
   AppTitle,
+  FilterWrapper,
   GridWrapper,
+  Links,
   ToolOutline,
   ToolText,
   TopWrapper,
@@ -25,7 +26,6 @@ function App() {
   const [fullWeeks, setFullWeeks] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [kickOffTime, setKickOffTime] = useState([]);
   const [rowData, setRowData] = useState([]);
   const [showOptions, setShowOptions] = useState({
     away: true,
@@ -133,10 +133,8 @@ function App() {
 
   const fetchTeamMemberList = async () => {
     try {
-      setAPIBaseURL(
-        "https://api.sportsdata.io/v3/nfl/scores/json/TeamsBasic?key=df0a8ea9a7b949e098fba1d12543bf3f"
-      );
-      const { data } = await API.get();
+      const { data } = await API.get("/team-member-list");
+      console.log(data);
       setTeamMembers(data);
     } catch (e) {
       console.log(e);
@@ -187,25 +185,11 @@ function App() {
     }, []);
   };
 
-  const fetchKickOffTime = async () => {
-    try {
-      setAPIBaseURL(
-        "https://api.sportsdata.io/v3/nfl/scores/json/Schedules/2025?key=df0a8ea9a7b949e098fba1d12543bf3f"
-      );
-      const { data } = await API.get();
-      setKickOffTime(data);
-    } catch (e) {
-      console.log(e);
-    }
-  };
-
   const fetchFullWeekSchedule = async () => {
     setLoading(true);
     try {
-      setAPIBaseURL(
-        "https://api.sportsdata.io/v3/nfl/scores/json/Schedules/2025?key=df0a8ea9a7b949e098fba1d12543bf3f"
-      );
-      const { data } = await API.get();
+      const { data } = await API.get("/full-weeks-schedule");
+
       const transformedData = transformWeeklySchedule(data);
 
       const customWeeks = transformedData
@@ -291,8 +275,30 @@ function App() {
 
   return (
     <>
-      <AppTitle>NFL Survivor Grid - {currentWeek.label}</AppTitle>
       <TopWrapper>
+        <AppTitle>NFL Survivor Grid - {currentWeek.label}</AppTitle>
+        <Links>
+          <a
+            href="https://www.rotoballer.com/nfl-survivor-pool-strategy-expert-tips-for-survivor-leagues/1519975"
+            target="_blank"
+          >
+            Survivor Strategy
+          </a>
+          <a
+            href="https://www.rotoballer.com/survivor-pool-aggregate-consensus-picks-and-data"
+            target="_blank"
+          >
+            Consensus Picks
+          </a>
+          <a
+            href="https://www.rotoballer.com/nfl-survivor-pool-strategy-expert-tips-for-survivor-leagues/1519975"
+            target="_blank"
+          >
+            Knockout Data
+          </a>
+        </Links>
+      </TopWrapper>
+      <FilterWrapper>
         <Select
           prefix={<img src={Calendar} width="15px" height="16px" alt="" />}
           options={fullWeeks}
@@ -335,7 +341,7 @@ function App() {
           />
           <ToolText>Spreads</ToolText>
         </ToolOutline>
-      </TopWrapper>
+      </FilterWrapper>
       <GridWrapper>
         <AgGridReact
           rowData={rowData}

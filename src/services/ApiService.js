@@ -1,7 +1,6 @@
 import axios from "axios";
 
-const defaultBaseURL =
-  "https://api.sportsdata.io/v3/nfl/scores/json/TeamsBasic?key=df0a8ea9a7b949e098fba1d12543bf3f";
+const defaultBaseURL = "http://localhost:3000/api";
 
 export const API = axios.create({
   baseURL: defaultBaseURL,

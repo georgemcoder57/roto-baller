@@ -1,6 +1,6 @@
 import styled from "styled-components";
 
-export const TopWrapper = styled.div`
+export const FilterWrapper = styled.div`
   display: flex;
   margin: 16px 0px;
   align-items: center;
@@ -10,6 +10,20 @@ export const TopWrapper = styled.div`
   .ant-select-prefix {
     height: 16px;
   }
+`;
+
+export const TopWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+`;
+
+export const Links = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
 `;
 
 export const ToolOutline = styled.div`
