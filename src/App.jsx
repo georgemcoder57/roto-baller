@@ -19,6 +19,7 @@ import {
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 function App() {
+  const [loggedUser, setLoggedUser] = useState(null);
   const [currentWeek, setCurrentWeek] = useState({
     label: "Week 1",
     value: 1,
@@ -54,14 +55,34 @@ function App() {
   ]);
 
   useEffect(() => {
+    fetchLoginInfo();
+  }, []);
+
+  useEffect(() => {
     fetchTeamMemberList();
   }, []);
 
   useEffect(() => {
     if (teamMembers.length > 0) {
       fetchFullWeekSchedule();
+      fetchLoginInfo();
     }
   }, [teamMembers]);
+
+  const fetchLoginInfo = () => {
+    fetch(WP_API.root + "custom/v1/user-status", {
+      method: "GET",
+      headers: {
+        "X-WP-Nonce": WP_API.nonce,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log(data);
+        setLoggedUser(data);
+      });
+  };
 
   const getClassName = (cellData) => {
     const cellDate = new Date(cellData.dateTime);
@@ -128,6 +149,7 @@ function App() {
         ),
         width: 80,
       }));
+    6787931446;
     return [...customColumns, ...weekCols];
   }, [showOptions, currentWeek]);
 
@@ -272,6 +294,8 @@ function App() {
       [type]: checked,
     });
   };
+
+  console.log("isLoggedIn", isLoggedIn);
 
   return (
     <>

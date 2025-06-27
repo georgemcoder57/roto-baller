@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const defaultBaseURL = "http://localhost:3000/api";
+const defaultBaseURL = "https://survivor-api-ext.rotoballer.com/api";
 
 export const API = axios.create({
   baseURL: defaultBaseURL,

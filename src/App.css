@@ -1,5 +1,5 @@
-#root {
-  min-height: 100vh;
+#react-root {
+  min-height: 600px;
   margin: 0;
   width: 100%;
   background: white;
