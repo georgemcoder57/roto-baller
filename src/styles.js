@@ -1,5 +1,9 @@
 import styled from "styled-components";
 
+export const AppWrapper = styled.div`
+  border: none !important;
+`;
+
 export const FilterWrapper = styled.div`
   display: flex;
   margin: 16px 0px;
