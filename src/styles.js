@@ -73,8 +73,8 @@ export const GridWrapper = styled.div`
     border-radius: 0px;
   }
 
-  .ag-theme-params-5 {
-    border: none;
+  .ag-theme-params-1, .ag-theme-params-5 {
+    border: none !important;
   }
 
   .ag-row {
