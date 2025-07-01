@@ -8,6 +8,7 @@ import { Button, Card, Checkbox, Input, Select, Switch } from "antd";
 import Calendar from "./assets/calendar.png";
 import {
   AppTitle,
+  AppWrapper,
   EntryButtons,
   FilterWrapper,
   GridWrapper,
@@ -382,7 +383,7 @@ function App() {
   console.log("currentEntry", currentEntry, fullWeeks);
 
   return (
-    <>
+    <AppWrapper>
       <TopWrapper>
         <AppTitle>NFL Survivor Grid - {currentWeek.label}</AppTitle>
         <Links>
@@ -532,7 +533,7 @@ function App() {
           headerHeight={41}
         />
       </GridWrapper>
-    </>
+    </AppWrapper>
   );
 }
 
