@@ -4,13 +4,16 @@ import { AgGridReact } from "ag-grid-react"; // React Data Grid Component
 
 import "./App.css";
 import { API, setAPIBaseURL } from "./services/ApiService";
-import { Select, Switch } from "antd";
+import { Button, Card, Checkbox, Input, Select, Switch } from "antd";
 import Calendar from "./assets/calendar.png";
 import {
   AppTitle,
+  EntryButtons,
   FilterWrapper,
   GridWrapper,
   Links,
+  PanelWrapper,
+  TeamsUsedTitle,
   ToolOutline,
   ToolText,
   TopWrapper,
@@ -19,6 +22,12 @@ import {
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 function App() {
+  const [currentEntry, setCurrentEntry] = useState({
+    name: "",
+    doublePicksStart: "never",
+    teams_used: "",
+    hide_on_grid: false,
+  });
   const [loggedUser, setLoggedUser] = useState(null);
   const [currentWeek, setCurrentWeek] = useState({
     label: "Week 1",
@@ -38,7 +47,12 @@ function App() {
 
   // Column Definitions: Defines the columns to be displayed.
   const [colDefs, setColDefs] = useState([
-    { field: "name", headerName: "Team", width: 80 },
+    {
+      field: "name",
+      headerName: "Team",
+      width: 80,
+      cellRenderer: (props) => <div className="team-name">{props.value}</div>,
+    },
     { field: "ev", headerName: "OP", width: 60 },
     {
       field: "win_probability",
@@ -55,7 +69,7 @@ function App() {
   ]);
 
   useEffect(() => {
-    fetchLoginInfo();
+    // fetchLoginInfo();
   }, []);
 
   useEffect(() => {
@@ -65,24 +79,24 @@ function App() {
   useEffect(() => {
     if (teamMembers.length > 0) {
       fetchFullWeekSchedule();
-      fetchLoginInfo();
+      // fetchLoginInfo();
     }
   }, [teamMembers]);
 
-  const fetchLoginInfo = () => {
-    fetch(WP_API.root + "custom/v1/user-status", {
-      method: "GET",
-      headers: {
-        "X-WP-Nonce": WP_API.nonce,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log(data);
-        setLoggedUser(data);
-      });
-  };
+  // const fetchLoginInfo = () => {
+  //   fetch(WP_API.root + "custom/v1/user-status", {
+  //     method: "GET",
+  //     headers: {
+  //       "X-WP-Nonce": WP_API.nonce,
+  //       "Content-Type": "application/json",
+  //     },
+  //   })
+  //     .then((res) => res.json())
+  //     .then((data) => {
+  //       console.log(data);
+  //       setLoggedUser(data);
+  //     });
+  // };
 
   const getClassName = (cellData) => {
     const cellDate = new Date(cellData.dateTime);
@@ -234,7 +248,6 @@ function App() {
       setFullWeeks(customWeeks);
 
       let customRows = [];
-      console.log("transformedData", transformedData);
       transformedData.forEach((team) => {
         let row = {};
         row.name = team.name;
@@ -295,7 +308,50 @@ function App() {
     });
   };
 
-  console.log("isLoggedIn", isLoggedIn);
+  const handleChangeEntry = (e) => {
+    setCurrentEntry({
+      ...currentEntry,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSaveEntry = () => {};
+  const handleSaveAsEntry = () => {
+    setCurrentEntry({
+      ...currentEntry,
+      name: "",
+    });
+  };
+  const handleLoadEntry = () => {};
+  const handleClearEntry = () => {
+    setCurrentEntry({
+      name: "",
+      doublePicksStart: 0,
+      hide_on_grid: false,
+      teams_used: null,
+    });
+  };
+  const handleChangeDoublePicks = (value, option) => {
+    setCurrentEntry({
+      ...currentEntry,
+      doublePicksStart: value,
+    });
+  };
+  const handleChangeTeamsUsed = (value, option) => {
+    setCurrentEntry({
+      ...currentEntry,
+      teams_used: value,
+    });
+  };
+
+  const handleChangeHideOnGrid = (e) => {
+    setCurrentEntry({
+      ...currentEntry,
+      hide_on_grid: e.target.checked,
+    });
+  };
+
+  console.log("currentEntry", currentEntry, fullWeeks);
 
   return (
     <>
@@ -322,6 +378,79 @@ function App() {
           </a>
         </Links>
       </TopWrapper>
+      <Card
+        title="Your Saved Entries"
+        extra={"(click games on the grid to highlight)"}
+        style={{ width: "100%", marginTop: "20px" }}
+      >
+        <PanelWrapper>
+          <Input
+            value={currentEntry.name}
+            onChange={(e) => handleChangeEntry(e)}
+            style={{ width: "250px" }}
+            placeholder="New Entry Name"
+            name="name"
+          />
+          <EntryButtons>
+            <Button
+              type="primary"
+              onClick={handleSaveEntry}
+              disabled={!currentEntry.name}
+            >
+              Save
+            </Button>
+            <Button onClick={handleSaveAsEntry}>Save As</Button>
+            <Button type="primary" onClick={handleLoadEntry}>
+              Load
+            </Button>
+            <Button onClick={handleClearEntry}>Clear</Button>
+          </EntryButtons>
+        </PanelWrapper>
+        <PanelWrapper>
+          <div>
+            <div>Double Picks Start</div>
+            <Select
+              options={[
+                {
+                  label: "Never",
+                  value: 0,
+                },
+                ...fullWeeks,
+              ]}
+              value={currentEntry.doublePicksStart}
+              onChange={handleChangeDoublePicks}
+              style={{ width: "170px" }}
+            />
+          </div>
+          <div style={{ width: "100%" }}>
+            <TeamsUsedTitle>
+              <div>Teams Used</div>
+              <div>
+                {"( "}
+                <Checkbox
+                  checked={currentEntry.hide_on_grid}
+                  onChange={handleChangeHideOnGrid}
+                >
+                  Hide on grid
+                </Checkbox>
+                {")"}
+              </div>
+            </TeamsUsedTitle>
+            <Select
+              options={rowData}
+              value={currentEntry.teams_used}
+              onChange={handleChangeTeamsUsed}
+              fieldNames={{
+                label: "name",
+                value: "name",
+              }}
+              mode="multiple"
+              allowClear
+              style={{ width: "100%" }}
+            />
+          </div>
+        </PanelWrapper>
+      </Card>
       <FilterWrapper>
         <Select
           prefix={<img src={Calendar} width="15px" height="16px" alt="" />}

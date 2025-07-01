@@ -7,6 +7,10 @@ export const FilterWrapper = styled.div`
   justify-content: flex-start;
   gap: 8px;
 
+  .ant-select-selector {
+    border-radius: 0px;
+  }
+
   .ant-select-prefix {
     height: 16px;
   }
@@ -24,12 +28,19 @@ export const Links = styled.div`
   align-items: center;
   justify-content: center;
   gap: 20px;
+
+  a {
+    font-weight: 500;
+    font-size: 18px;
+    text-decoration: none;
+    color: #006dc8;
+  }
 `;
 
 export const ToolOutline = styled.div`
   width: 218px;
   border: 1px solid #dadada;
-  border-radius: 8px;
+  border-radius: 0px;
   padding: 12px 16px;
   padding-left: 16px;
   display: flex;
@@ -54,6 +65,36 @@ export const AppTitle = styled.div`
 export const GridWrapper = styled.div`
   height: 750px;
 
+  .ag-root-wrapper {
+    border-radius: 0px;
+  }
+
+  .ag-theme-params-5 {
+    border: none;
+  }
+
+  .ag-row {
+    border-bottom: none;
+  }
+
+  .ag-cell {
+    border: 1px solid #ededed;
+  }
+
+  .ag-header-cell-label {
+    justify-content: center;
+  }
+
+  .ag-header-cell-text {
+    font-weight: bold;
+  }
+
+  .team-name {
+    background: #006dc8;
+    color: white;
+    text-align: center;
+    font-weight: bold;
+  }
   .sd,
   .sc,
   .normal {
@@ -120,4 +161,30 @@ export const GridWrapper = styled.div`
   .step-5 {
     background: #4cff4c;
   }
+`;
+
+export const PanelWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+
+  .ant-card {
+    border-radius: 0px;
+  }
+`;
+
+export const TeamsUsedTitle = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+`;
+
+export const EntryButtons = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
 `;
