@@ -63,7 +63,7 @@ export const AppTitle = styled.div`
 `;
 
 export const GridWrapper = styled.div`
-  height: 750px;
+  height: 850px;
 
   .ag-root-wrapper {
     border-radius: 0px;
@@ -94,6 +94,11 @@ export const GridWrapper = styled.div`
     color: white;
     text-align: center;
     font-weight: bold;
+    height: 100%;
+  }
+
+  .ag-column-first {
+    border: none;
   }
   .sd,
   .sc,
@@ -112,8 +117,8 @@ export const GridWrapper = styled.div`
 
   .point-value {
     position: absolute;
-    right: 6px;
-    bottom: 6px;
+    right: 2px;
+    bottom: 2px;
     font-size: 10px;
     font-weight: 500;
     color: #797979;

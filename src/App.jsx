@@ -52,19 +52,24 @@ function App() {
       headerName: "Team",
       width: 80,
       cellRenderer: (props) => <div className="team-name">{props.value}</div>,
+      flex: 1,
+      pinned: "left",
     },
-    { field: "ev", headerName: "OP", width: 60 },
+    // { field: "ev", headerName: "EV", width: 56, flex: 1 },
     {
       field: "win_probability",
       headerName: "W%",
       cellRenderer: (props) => `${props.value}%`,
-      width: 70,
+      width: 56,
+      flex: 1,
+      pinned: "left",
     },
     {
       field: "p_percent",
       headerName: "P%",
       cellRenderer: (props) => `${props.value}%`,
-      width: 70,
+      width: 56,
+      flex: 1,
     },
   ]);
 
@@ -98,6 +103,29 @@ function App() {
   //     });
   // };
 
+  const getBackgroundColor = (cellData) => {
+    const point = cellData.point;
+    if (point > -3) {
+      return "#fdfffd";
+    } else if (point > -10 && point <= -3) {
+      // Gradient range: map point from [-10, -3] to [0, 1]
+      const t = (-3 - point) / 7; // 0 at -3, 1 at -10
+
+      // Interpolate between #fdfffd and #4cff4c
+      const startColor = [253, 255, 253]; // RGB of #fdfffd
+      const endColor = [76, 255, 76]; // RGB of #4cff4c
+
+      const r = Math.round(startColor[0] + (endColor[0] - startColor[0]) * t);
+      const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * t);
+      const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * t);
+
+      const backgroundColor = `rgb(${r}, ${g}, ${b})`;
+
+      return backgroundColor;
+    } else if (point <= -10) {
+      return "#4cff4c";
+    }
+  };
   const getClassName = (cellData) => {
     const cellDate = new Date(cellData.dateTime);
     let className = "show-spreads";
@@ -126,21 +154,6 @@ function App() {
       className += showOptions.divisional ? "" : " gray";
     }
 
-    if (!className.includes("gray")) {
-      const point = cellData.point;
-      if (point <= 3) {
-        className += " step-1";
-      } else if (point > 3 && point <= 7) {
-        className += " step-2";
-      } else if (point > 7 && point <= 10) {
-        className += " step-3";
-      } else if (point > 10 && point <= 13) {
-        className += " step-4";
-      } else if (point > 13) {
-        className += " step-5";
-      }
-    }
-
     return className;
   };
 
@@ -151,17 +164,32 @@ function App() {
       .map((weekNum) => ({
         headerName: `${weekNum}`,
         field: `week${weekNum}`,
-        cellRenderer: (props) => (
-          <div className={getClassName(props.data[`week${weekNum}`])}>
-            <div className="name-value">
-              {props.data[`week${weekNum}`].name}
+        cellRenderer: (props) =>
+          console.log(props.data) || (
+            <div
+              className={getClassName(props.data[`week${weekNum}`])}
+              style={{
+                backgroundColor: getBackgroundColor(
+                  props.data[`week${weekNum}`]
+                ),
+              }}
+            >
+              <div className="name-value">
+                {props.data[`week${weekNum}`].name}
+              </div>
+              <div className="point-value">
+                {`${
+                  props.data[`week${weekNum}`].point
+                    ? props.data[`week${weekNum}`].point > 0
+                      ? `+${props.data[`week${weekNum}`].point}`
+                      : props.data[`week${weekNum}`].point
+                    : ""
+                }`}
+              </div>
             </div>
-            <div className="point-value">
-              {props.data[`week${weekNum}`].point}
-            </div>
-          </div>
-        ),
-        width: 80,
+          ),
+        width: 66,
+        flex: 1,
       }));
     6787931446;
     return [...customColumns, ...weekCols];
@@ -500,6 +528,8 @@ function App() {
           rowData={rowData}
           columnDefs={customColDefs}
           loading={loading}
+          rowHeight={41}
+          headerHeight={41}
         />
       </GridWrapper>
     </>
