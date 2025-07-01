@@ -54,7 +54,7 @@ function App() {
       width: 80,
       cellRenderer: (props) => <div className="team-name">{props.value}</div>,
       flex: 1,
-      pinned: "left",
+      // pinned: "left",
     },
     // { field: "ev", headerName: "EV", width: 56, flex: 1 },
     {
@@ -63,7 +63,7 @@ function App() {
       cellRenderer: (props) => `${props.value}%`,
       width: 56,
       flex: 1,
-      pinned: "left",
+      // pinned: "left",
     },
     {
       field: "p_percent",
