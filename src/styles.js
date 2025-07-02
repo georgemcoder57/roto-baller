@@ -69,11 +69,67 @@ export const AppTitle = styled.div`
 export const GridWrapper = styled.div`
   height: 850px;
 
+  .red-cross {
+    position: relative;
+    overflow: hidden; /* prevent bleed-out */
+  }
+
+  .red-cross::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%; /* always left side of cell */
+    width: 1px;
+    background-color: red;
+    pointer-events: none;
+  }
+
+  .red-cross-second {
+    position: relative;
+  }
+
+  .red-bar {
+    width: 2px;
+    height: 100%;
+    background-color: red;
+    position: absolute;
+    left: 50%;
+  }
+
+  .red-bar.hide-red-bar {
+    display: none;
+  }
+
+  .red-cross-second::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 1px;
+    height: 100%;
+    background-color: red;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .ag-cell.cell-selected {
+    font-weight: bold;
+    border: 1px solid red;
+  }
+
+  .cell-disabled {
+    pointer-events: none;
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
   .ag-root-wrapper {
     border-radius: 0px;
   }
 
-  .ag-theme-params-1, .ag-theme-params-5 {
+  .ag-theme-params-1,
+  .ag-theme-params-5 {
     border: none !important;
   }
 
@@ -142,8 +198,14 @@ export const GridWrapper = styled.div`
     display: block;
   }
 
+  .show-spreads,
+  .hide-spreads {
+    position: relative;
+  }
+
   .gray {
     background: lightgray;
+    position: relative;
   }
 
   .gray .name-value {

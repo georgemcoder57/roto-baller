@@ -3,8 +3,16 @@ import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react"; // React Data Grid Component
 
 import "./App.css";
-import { API, setAPIBaseURL } from "./services/ApiService";
-import { Button, Card, Checkbox, Input, Select, Switch } from "antd";
+import { API } from "./services/ApiService";
+import {
+  Button,
+  Card,
+  Checkbox,
+  Input,
+  Select,
+  Switch,
+  notification,
+} from "antd";
 import Calendar from "./assets/calendar.png";
 import {
   AppTitle,
@@ -23,10 +31,15 @@ import {
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 function App() {
+  const [api, contextHolder] = notification.useNotification();
+  const [clickedCell, setClickedCell] = useState(null);
+  const [secondClickedCell, setSecondClickedCell] = useState(null);
   const [currentEntry, setCurrentEntry] = useState({
     name: "",
-    doublePicksStart: "never",
-    teams_used: "",
+    doublePicksStart: 0,
+    team1: "",
+    team2: null,
+    teams_used: [],
     hide_on_grid: false,
   });
   const [loggedUser, setLoggedUser] = useState(null);
@@ -75,7 +88,7 @@ function App() {
   ]);
 
   useEffect(() => {
-    // fetchLoginInfo();
+    fetchLoginInfo();
   }, []);
 
   useEffect(() => {
@@ -85,24 +98,24 @@ function App() {
   useEffect(() => {
     if (teamMembers.length > 0) {
       fetchFullWeekSchedule();
-      // fetchLoginInfo();
+      fetchLoginInfo();
     }
   }, [teamMembers]);
 
-  // const fetchLoginInfo = () => {
-  //   fetch(WP_API.root + "custom/v1/user-status", {
-  //     method: "GET",
-  //     headers: {
-  //       "X-WP-Nonce": WP_API.nonce,
-  //       "Content-Type": "application/json",
-  //     },
-  //   })
-  //     .then((res) => res.json())
-  //     .then((data) => {
-  //       console.log(data);
-  //       setLoggedUser(data);
-  //     });
-  // };
+  const fetchLoginInfo = () => {
+    return;
+    fetch(WP_API.root + "custom/v1/user-status", {
+      method: "GET",
+      headers: {
+        "X-WP-Nonce": WP_API.nonce,
+        "Content-Type": "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setLoggedUser(data);
+      });
+  };
 
   const getBackgroundColor = (cellData) => {
     const point = cellData.point;
@@ -158,6 +171,29 @@ function App() {
     return className;
   };
 
+  const getCellClass = (params) => {
+    if (!clickedCell) return "";
+
+    const isFirstClickedCellCol = params.colDef.field === clickedCell.colId;
+    const isFirstClickedCellRow = params.rowIndex === clickedCell.rowIndex;
+
+    if (isFirstClickedCellCol && isFirstClickedCellRow) {
+      return "cell-selected";
+    }
+
+    if (!secondClickedCell) return "";
+
+    const isSecondClickedCellCol =
+      params.colDef.field === secondClickedCell.colId;
+    const isSecondClickedCellRow =
+      params.rowIndex === secondClickedCell.rowIndex;
+    if (isSecondClickedCellCol && isSecondClickedCellRow) {
+      return "cell-selected";
+    }
+
+    return "";
+  };
+
   const customColDefs = useMemo(() => {
     let customColumns = [...colDefs];
     const weekCols = Array.from({ length: 18 }, (_, i) => i + 1)
@@ -165,8 +201,21 @@ function App() {
       .map((weekNum) => ({
         headerName: `${weekNum}`,
         field: `week${weekNum}`,
-        cellRenderer: (props) =>
-          console.log(props.data) || (
+        cellClass: (params) => getCellClass(params),
+        // cellClassRules: {
+        //   "cell-disabled": (params) => isDisabled(params),
+        // },
+        cellRenderer: (props) => {
+          const { node, colDef } = props;
+          const isSameFirstCol = clickedCell?.colId === colDef.field;
+          const isOtherFirstRow = clickedCell?.rowIndex !== node.rowIndex;
+          const isSameFirstRow = clickedCell?.rowIndex === node.rowIndex;
+
+          const isSameSecondCol = secondClickedCell?.colId === colDef.field;
+          const isSameSecondRow = secondClickedCell?.rowIndex === node.rowIndex;
+          const isOtherSecondRow =
+            secondClickedCell?.rowIndex !== node.rowIndex;
+          return (
             <div
               className={getClassName(props.data[`week${weekNum}`])}
               style={{
@@ -175,6 +224,20 @@ function App() {
                 ),
               }}
             >
+              {isSameFirstCol && isOtherFirstRow && (
+                <div
+                  className={`red-bar ${
+                    isSameSecondCol && isSameSecondRow ? "hide-red-bar" : ""
+                  }`}
+                />
+              )}
+              {isSameSecondCol && isOtherSecondRow && (
+                <div
+                  className={`red-bar ${
+                    isSameFirstCol && isSameFirstRow ? "hide-red-bar" : ""
+                  }`}
+                />
+              )}
               <div className="name-value">
                 {props.data[`week${weekNum}`].name}
               </div>
@@ -188,13 +251,13 @@ function App() {
                 }`}
               </div>
             </div>
-          ),
+          );
+        },
         width: 66,
         flex: 1,
       }));
-    6787931446;
     return [...customColumns, ...weekCols];
-  }, [showOptions, currentWeek]);
+  }, [showOptions, currentWeek, clickedCell, secondClickedCell]);
 
   const fetchTeamMemberList = async () => {
     try {
@@ -256,7 +319,7 @@ function App() {
       const { data } = await API.get("/full-weeks-schedule");
 
       const transformedData = transformWeeklySchedule(data);
-
+      console.log("--------", transformedData);
       const customWeeks = transformedData
         .reduce((weeks, team) => {
           team.games.forEach((game) => {
@@ -344,7 +407,13 @@ function App() {
     });
   };
 
-  const handleSaveEntry = () => {};
+  const handleSaveEntry = () => {
+    setCurrentEntry({
+      ...currentEntry,
+      user: loggedUser,
+    });
+    console.log(currentEntry);
+  };
   const handleSaveAsEntry = () => {
     setCurrentEntry({
       ...currentEntry,
@@ -377,13 +446,86 @@ function App() {
     setCurrentEntry({
       ...currentEntry,
       hide_on_grid: e.target.checked,
+      week: currentWeek.value,
     });
   };
 
-  console.log("currentEntry", currentEntry, fullWeeks);
+  const isDisabled = (params) => {
+    if (!clickedCell || currentEntry.doublePicksStart > 0) return false;
+    return params.rowIndex !== clickedCell.rowIndex;
+  };
+
+  const handleCellClick = (event) => {
+    if (!event.colDef.field.includes("week")) return;
+
+    if (
+      clickedCell &&
+      currentEntry.doublePicksStart === 0 &&
+      event.rowIndex === clickedCell.rowIndex &&
+      event.colDef.field === clickedCell.colId
+    ) {
+      setClickedCell(null);
+      return;
+    }
+
+    if (
+      secondClickedCell &&
+      currentEntry.doublePicksStart > 0 &&
+      event.rowIndex === secondClickedCell.rowIndex &&
+      event.colDef.field === secondClickedCell.colId
+    ) {
+      setSecondClickedCell(null);
+      return;
+    }
+
+    if (
+      currentEntry.doublePicksStart > 0 &&
+      clickedCell &&
+      event.rowIndex === clickedCell.rowIndex
+    ) {
+      api.error({
+        message: "Error!",
+        description:
+          "The team of the second pick should different with the first pick",
+      });
+      return;
+    }
+
+    if (currentEntry.doublePicksStart === 0) {
+      setClickedCell({
+        rowIndex: event.rowIndex,
+        colId: event.colDef.field,
+      });
+      setCurrentEntry({
+        ...currentEntry,
+        team1: event.data.name,
+      });
+    } else {
+      if (!clickedCell) {
+        setClickedCell({
+          rowIndex: event.rowIndex,
+          colId: event.colDef.field,
+        });
+        setCurrentEntry({
+          ...currentEntry,
+          team1: event.data.name,
+        });
+      } else {
+        setSecondClickedCell({
+          rowIndex: event.rowIndex,
+          colId: event.colDef.field,
+        });
+        setCurrentEntry({
+          ...currentEntry,
+          team2: event.data.name,
+        });
+      }
+    }
+  };
 
   return (
     <AppWrapper>
+      {contextHolder}
       <TopWrapper>
         <AppTitle>NFL Survivor Grid - {currentWeek.label}</AppTitle>
         <Links>
@@ -474,6 +616,7 @@ function App() {
                 value: "name",
               }}
               mode="multiple"
+              disabled={currentWeek.value === 1}
               allowClear
               style={{ width: "100%" }}
             />
@@ -531,6 +674,7 @@ function App() {
           loading={loading}
           rowHeight={41}
           headerHeight={41}
+          onCellClicked={handleCellClick}
         />
       </GridWrapper>
     </AppWrapper>
