@@ -12,7 +12,7 @@ export const FilterWrapper = styled.div`
   gap: 8px;
 
   .ant-select-selector {
-    border-radius: 0px;
+    border-radius: 32px;
   }
 
   .ant-select-prefix {
@@ -43,8 +43,8 @@ export const Links = styled.div`
 
 export const ToolOutline = styled.div`
   width: 218px;
+  border-radius: 32px;
   border: 1px solid #dadada;
-  border-radius: 0px;
   padding: 12px 16px;
   padding-left: 16px;
   display: flex;
@@ -67,65 +67,52 @@ export const AppTitle = styled.div`
 `;
 
 export const GridWrapper = styled.div`
-  height: 850px;
+  height: 1365px;
 
-  .red-cross {
-    position: relative;
-    overflow: hidden; /* prevent bleed-out */
+  .ag-header-cell-resize {
+    &:after {
+      height: 100%;
+      width: 1px;
+      top: 0;
+      right: 3px;
+      left: auto;
+    }
   }
-
-  .red-cross::after {
-    content: "";
+  .red-bar-horizontal {
+    width: 100%;
+    height: 1px;
+    background: red;
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%; /* always left side of cell */
-    width: 1px;
-    background-color: red;
-    pointer-events: none;
-  }
-
-  .red-cross-second {
-    position: relative;
+    top: 50%;
   }
 
   .red-bar {
-    width: 2px;
+    width: 1px;
     height: 100%;
     background-color: red;
     position: absolute;
     left: 50%;
+  }
+
+  .win-percent,
+  .pick-percent {
+    position: relative;
   }
 
   .red-bar.hide-red-bar {
     display: none;
   }
 
-  .red-cross-second::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 1px;
-    height: 100%;
-    background-color: red;
-    transform: translateX(-50%);
-    pointer-events: none;
-  }
-
   .ag-cell.cell-selected {
     font-weight: bold;
     border: 1px solid red;
+    box-sizing: border-box;
   }
 
   .cell-disabled {
     pointer-events: none;
     opacity: 0.4;
     cursor: not-allowed;
-  }
-
-  .ag-root-wrapper {
-    border-radius: 0px;
   }
 
   .ag-theme-params-1,
@@ -141,6 +128,9 @@ export const GridWrapper = styled.div`
     border: 1px solid #ededed;
   }
 
+  .ag-header-cell {
+    padding: 0 !important;
+  }
   .ag-header-cell-label {
     justify-content: center;
   }
@@ -155,6 +145,11 @@ export const GridWrapper = styled.div`
     text-align: center;
     font-weight: bold;
     height: 100%;
+  }
+
+  .team-name.cell-selected {
+    border: 2px solid red;
+    box-sizing: border-box;
   }
 
   .ag-column-first {
@@ -240,10 +235,6 @@ export const PanelWrapper = styled.div`
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 10px;
-
-  .ant-card {
-    border-radius: 0px;
-  }
 `;
 
 export const TeamsUsedTitle = styled.div`
