@@ -34,7 +34,7 @@ import { ExclamationCircleOutlined, PlusOutlined } from "@ant-design/icons";
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 function App() {
-  const [entryloaded, setEntryLoaded] = useState(false);
+  const [gridApi, setGridApi] = useState(null);
   const [modal, modalContextHolder] = Modal.useModal();
   const [api, contextHolder] = notification.useNotification();
   const [clickedCell, setClickedCell] = useState(null);
@@ -183,7 +183,7 @@ function App() {
   }, [teamMembers]);
 
   const fetchLoginInfo = () => {
-    return;
+    // return;
     fetch(WP_API.root + "custom/v1/user-status", {
       method: "GET",
       headers: {
@@ -629,11 +629,16 @@ function App() {
     });
   };
 
-  const handleChangeEntry = (e) => {
-    setCurrentEntry({
-      ...currentEntry,
-      [e.target.name]: e.target.value,
-    });
+  const onGridReady = (params) => {
+    setGridApi(params.api);
+  };
+
+  const isExternalFilterPresent = () => {
+    return true; // always apply external filter
+  };
+
+  const doesExternalFilterPass = (node) => {
+    return currentEntry.teams_used.includes(node.data.name);
   };
 
   const handleSaveEntry = async () => {
@@ -645,7 +650,6 @@ function App() {
       };
       if (loadedEntries.find((item) => item.id === currentEntry.id)) {
         const { data } = await API.put(`/entry/${currentEntry.id}`, payload);
-        console.log(data);
         if (data.success) {
           setSaved(true);
           api.success({
@@ -656,7 +660,6 @@ function App() {
         }
       } else {
         const { data } = await API.post("/entry", payload);
-        console.log(data);
         if (data.success) {
           setSaved(true);
           api.success({
@@ -690,7 +693,6 @@ function App() {
           message: "Entries Loaded",
           description: "All saved entries have been loaded successfully.",
         });
-        setEntryLoaded(true);
       } catch (e) {
         console.log(e);
       }
@@ -736,7 +738,9 @@ function App() {
     setCurrentEntry(option);
 
     if (option.team1) {
-      const rowIndex = rowData.findIndex((item) => item.name === option.team1);
+      const rowIndex = filteredData.findIndex(
+        (item) => item.name === option.team1
+      );
       setClickedCell({
         rowIndex,
         colId: `week${option.week}`,
@@ -744,7 +748,9 @@ function App() {
     }
 
     if (option.team2) {
-      const rowIndex = rowData.findIndex((item) => item.name === option.team2);
+      const rowIndex = filteredData.findIndex(
+        (item) => item.name === option.team2
+      );
       setSecondClickedCell({
         rowIndex,
         colId: `week${option.doublePicksStart}`,
@@ -769,12 +775,26 @@ function App() {
   const isDisabled = (params) => {
     if (!clickedCell) return false;
     if (secondClickedCell) {
+      if (
+        (params.rowIndex === clickedCell.rowIndex &&
+          params.colDef.field === clickedCell.colId) ||
+        (params.rowIndex === secondClickedCell.rowIndex &&
+          params.colDef.field === secondClickedCell.colId)
+      ) {
+        return false;
+      }
       return (
         params.rowIndex === clickedCell.rowIndex ||
         params.rowIndex === secondClickedCell.rowIndex ||
         currentEntry.teams_used.includes(params.data.name)
       );
     } else {
+      if (
+        params.rowIndex === clickedCell.rowIndex &&
+        params.colDef.field === clickedCell.colId
+      ) {
+        return false;
+      }
       return (
         params.rowIndex === clickedCell.rowIndex ||
         currentEntry.teams_used.includes(params.data.name)
@@ -783,8 +803,13 @@ function App() {
   };
 
   const handleCellClick = (event) => {
-    console.log(event);
     if (event.colDef.field === "name") {
+      if (
+        event.data.name === currentEntry.team1 ||
+        event.data.name === currentEntry.team2
+      ) {
+        return;
+      }
       let customTeamsUsed = [...currentEntry.teams_used];
       if (customTeamsUsed.includes(event.data.name)) {
         customTeamsUsed = customTeamsUsed.filter(
@@ -873,7 +898,18 @@ function App() {
     });
   };
 
-  console.log(loadedEntries, rowData);
+  const filteredData = useMemo(() => {
+    let customData = [...rowData];
+
+    if (currentEntry.hide_on_grid) {
+      return customData.filter(
+        (item) => !currentEntry.teams_used.includes(item.name)
+      );
+    }
+
+    return customData;
+  }, [currentEntry.hide_on_grid, rowData, currentEntry.teams_used]);
+
   return (
     <AppWrapper>
       {contextHolder}
@@ -1053,12 +1089,15 @@ function App() {
       </FilterWrapper>
       <GridWrapper>
         <AgGridReact
-          rowData={rowData}
+          rowData={filteredData}
           columnDefs={customColDefs}
           loading={loading}
           rowHeight={41}
           headerHeight={41}
           onCellClicked={handleCellClick}
+          onGridReady={onGridReady}
+          // isExternalFilterPresent={isExternalFilterPresent}
+          // doesExternalFilterPass={doesExternalFilterPass}
         />
       </GridWrapper>
     </AppWrapper>
