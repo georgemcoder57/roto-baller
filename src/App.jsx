@@ -655,6 +655,7 @@ function App() {
           api.success({
             message: "Entry Updated",
             description: "Your current entry has been updated successfully.",
+            placement: 'bottomRight'
           });
           handleLoadEntry();
         }
@@ -665,6 +666,7 @@ function App() {
           api.success({
             message: "Entry Created",
             description: "Your new entry has been saved successfully.",
+            placement: 'bottomRight'
           });
         }
       }
@@ -692,6 +694,7 @@ function App() {
         api.success({
           message: "Entries Loaded",
           description: "All saved entries have been loaded successfully.",
+          placement: 'bottomRight'
         });
       } catch (e) {
         console.log(e);
@@ -706,6 +709,7 @@ function App() {
         api.success({
           message: "Entry Deleted",
           description: "The selected entry has been removed.",
+          placement: 'bottomRight'
         });
       }
       handleLoadEntry();
