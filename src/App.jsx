@@ -29,7 +29,7 @@ import {
   ToolText,
   TopWrapper,
 } from "./styles";
-import { ExclamationCircleOutlined, PlusOutlined } from "@ant-design/icons";
+import { ExclamationCircleOutlined } from "@ant-design/icons";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -50,6 +50,7 @@ function App() {
     hide_on_grid: false,
     week: 1,
   });
+  const [pickData, setPickData] = useState(null);
   const [loggedUser, setLoggedUser] = useState({
     logged_in: true,
     user: {
@@ -66,6 +67,7 @@ function App() {
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [rowData, setRowData] = useState([]);
+  const [isDirty, setIsDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showOptions, setShowOptions] = useState({
     away: true,
@@ -74,98 +76,6 @@ function App() {
     monday: true,
     spreads: true,
   });
-
-  // Column Definitions: Defines the columns to be displayed.
-  const [colDefs, setColDefs] = useState([
-    {
-      field: "name",
-      headerName: "Team",
-      width: 80,
-      sortable: false,
-      cellRenderer: (props) => {
-        const { node, colDef } = props;
-        const isOtherFirstCol = clickedCell?.colId !== colDef.field;
-        const isSameFirstRow = clickedCell?.rowIndex === node.rowIndex;
-
-        const isOtherSecondCol = secondClickedCell?.colId !== colDef.field;
-        const isSameSecondRow = secondClickedCell?.rowIndex === node.rowIndex;
-        if (
-          (clickedCell && isOtherFirstCol && isSameFirstRow) ||
-          (secondClickedCell && isOtherSecondCol && isSameSecondRow)
-        ) {
-          return (
-            <div className="team-name">
-              <div className="red-bar-horizontal" />
-              {props.value}
-            </div>
-          );
-        }
-
-        return <div className="team-name">{props.value}</div>;
-      },
-      flex: 1,
-      pinned: "left",
-    },
-    // { field: "ev", headerName: "EV", width: 56, flex: 1 },
-    {
-      field: "win_probability",
-      headerName: "W%",
-      sortable: false,
-      cellRenderer: (props) => {
-        const { node, colDef } = props;
-        const isOtherFirstCol = clickedCell?.colId !== colDef.field;
-        const isSameFirstRow = clickedCell?.rowIndex === node.rowIndex;
-
-        const isOtherSecondCol = secondClickedCell?.colId !== colDef.field;
-        const isSameSecondRow = secondClickedCell?.rowIndex === node.rowIndex;
-        if (
-          (clickedCell && isOtherFirstCol && isSameFirstRow) ||
-          (secondClickedCell && isOtherSecondCol && isSameSecondRow)
-        ) {
-          return (
-            <div className="win-percent">
-              <div className="red-bar-horizontal" />
-              {`${props.value}%`}
-            </div>
-          );
-        }
-
-        return <div className="win-percent">{`${props.value}%`}</div>;
-      },
-      width: 56,
-      flex: 1,
-      pinned: "left",
-    },
-    {
-      field: "p_percent",
-      headerName: "P%",
-      sortable: false,
-      cellRenderer: (props) => {
-        const { node, colDef } = props;
-        const isOtherFirstCol = clickedCell?.colId !== colDef.field;
-        const isSameFirstRow = clickedCell?.rowIndex === node.rowIndex;
-
-        const isOtherSecondCol = secondClickedCell?.colId !== colDef.field;
-        const isSameSecondRow = secondClickedCell?.rowIndex === node.rowIndex;
-
-        if (
-          (clickedCell && isOtherFirstCol && isSameFirstRow) ||
-          (secondClickedCell && isOtherSecondCol && isSameSecondRow)
-        ) {
-          return (
-            <div className="pick-percent">
-              <div className="red-bar-horizontal" />
-              {`${props.value}%`}
-            </div>
-          );
-        }
-
-        return <div className="pick-percent">{`${props.value}%`}</div>;
-      },
-      // width: 56,
-      flex: 1,
-    },
-  ]);
 
   useEffect(() => {
     fetchLoginInfo();
@@ -183,7 +93,7 @@ function App() {
   }, [teamMembers]);
 
   const fetchLoginInfo = () => {
-    // return;
+    return;
     fetch(WP_API.root + "custom/v1/user-status", {
       method: "GET",
       headers: {
@@ -611,6 +521,7 @@ function App() {
   };
 
   const handleChangeWeek = (value, option) => {
+    setIsDirty(true);
     setCurrentWeek(option);
     setClickedCell(null);
     setSecondClickedCell(null);
@@ -633,14 +544,6 @@ function App() {
     setGridApi(params.api);
   };
 
-  const isExternalFilterPresent = () => {
-    return true; // always apply external filter
-  };
-
-  const doesExternalFilterPass = (node) => {
-    return currentEntry.teams_used.includes(node.data.name);
-  };
-
   const handleSaveEntry = async () => {
     try {
       const payload = {
@@ -655,7 +558,7 @@ function App() {
           api.success({
             message: "Entry Updated",
             description: "Your current entry has been updated successfully.",
-            placement: 'bottomRight'
+            placement: "bottomRight",
           });
           handleLoadEntry();
         }
@@ -666,7 +569,7 @@ function App() {
           api.success({
             message: "Entry Created",
             description: "Your new entry has been saved successfully.",
-            placement: 'bottomRight'
+            placement: "bottomRight",
           });
         }
       }
@@ -694,8 +597,10 @@ function App() {
         api.success({
           message: "Entries Loaded",
           description: "All saved entries have been loaded successfully.",
-          placement: 'bottomRight'
+          placement: "bottomRight",
         });
+        setCurrentEntry(data[0]);
+        setIsDirty(false);
       } catch (e) {
         console.log(e);
       }
@@ -709,7 +614,7 @@ function App() {
         api.success({
           message: "Entry Deleted",
           description: "The selected entry has been removed.",
-          placement: 'bottomRight'
+          placement: "bottomRight",
         });
       }
       handleLoadEntry();
@@ -732,6 +637,7 @@ function App() {
   };
 
   const handleChangeDoublePicks = (value, option) => {
+    setIsDirty(true);
     setCurrentEntry({
       ...currentEntry,
       doublePicksStart: value,
@@ -767,6 +673,7 @@ function App() {
       ...currentEntry,
       teams_used: value,
     });
+    setIsDirty(true);
   };
 
   const handleChangeHideOnGrid = (e) => {
@@ -774,6 +681,7 @@ function App() {
       ...currentEntry,
       hide_on_grid: e.target.checked,
     });
+    setIsDirty(true);
   };
 
   const isDisabled = (params) => {
@@ -807,6 +715,7 @@ function App() {
   };
 
   const handleCellClick = (event) => {
+    setIsDirty(true);
     if (event.colDef.field === "name") {
       if (
         event.data.name === currentEntry.team1 ||
@@ -896,6 +805,7 @@ function App() {
   };
 
   const handleChangeEntryName = (e) => {
+    setIsDirty(true);
     setCurrentEntry({
       ...currentEntry,
       name: e.target.value,
@@ -905,6 +815,23 @@ function App() {
   const filteredData = useMemo(() => {
     let customData = [...rowData];
 
+    if (pickData && pickData.results.length > 0) {
+      customData = customData.map((item) => {
+        const targetPickItem = pickData.results.find(
+          (pickItem) => pickItem.team === item.name
+        );
+
+        if (targetPickItem) {
+          return {
+            ...item,
+            p_percent: targetPickItem.percentage,
+          };
+        }
+
+        return item;
+      });
+    }
+
     if (currentEntry.hide_on_grid) {
       return customData.filter(
         (item) => !currentEntry.teams_used.includes(item.name)
@@ -912,7 +839,23 @@ function App() {
     }
 
     return customData;
-  }, [currentEntry.hide_on_grid, rowData, currentEntry.teams_used]);
+  }, [currentEntry.hide_on_grid, rowData, currentEntry.teams_used, pickData]);
+
+  useEffect(() => {
+    fetchPickPercentages();
+  }, [currentWeek]);
+
+  const fetchPickPercentages = async () => {
+    try {
+      const { data } = await API.get(
+        `/entry/calculate-pick/${currentWeek.value}`
+      );
+      setPickData(data);
+      console.log("------------", data);
+    } catch (e) {
+      console.log(e);
+    }
+  };
 
   return (
     <AppWrapper>
@@ -941,111 +884,120 @@ function App() {
           </a>
         </Links>
       </TopWrapper>
-      {loggedUser && (
-        <Card
-          title={
-            <EntryButtons>
-              <div>Your Saved Entries</div>
-              <Select
-                options={loadedEntries}
-                value={currentEntry.id}
-                onChange={handleChangeCurrentEntry}
-                style={{ width: "170px" }}
-                fieldNames={{
-                  label: "name",
-                  value: "id",
-                }}
-              />
-            </EntryButtons>
-          }
-          extra={"(click games on the grid to highlight)"}
-          style={{ width: "100%", marginTop: "20px" }}
-        >
-          <PanelWrapper>
-            <EntryButtons>
-              <div>
-                <div>Entry Name</div>
-                <Input
-                  value={currentEntry.name}
-                  onChange={handleChangeEntryName}
-                  style={{ width: "170px" }}
-                />
-              </div>
-            </EntryButtons>
-            <EntryButtons>
-              <Button
-                type="primary"
-                onClick={handleSaveEntry}
-                disabled={!currentEntry.name}
-              >
-                Save
-              </Button>
-
-              <Button type="primary" onClick={handleLoadEntry}>
-                Load
-              </Button>
-              <Popconfirm
-                title="Delete the entry"
-                description="Are you sure to delete this entry?"
-                onConfirm={handleRemoveEntry}
-                okText="Yes"
-                cancelText="No"
-              >
-                <Button danger disabled={!currentEntry.name}>
-                  Delete
-                </Button>
-              </Popconfirm>
-
-              <Button onClick={handleClearEntry}>Clear</Button>
-            </EntryButtons>
-          </PanelWrapper>
-          <PanelWrapper>
+      <Card
+        title={
+          <EntryButtons>
+            <div>Your Saved Entries</div>
+            <Select
+              options={loadedEntries}
+              value={currentEntry.id}
+              onChange={handleChangeCurrentEntry}
+              style={{ width: "170px" }}
+              fieldNames={{
+                label: "name",
+                value: "id",
+              }}
+            />
+          </EntryButtons>
+        }
+        extra={"(click games on the grid to highlight)"}
+        style={{ width: "100%", marginTop: "20px" }}
+      >
+        <PanelWrapper>
+          <EntryButtons>
             <div>
-              <div>Double Picks Start</div>
-              <Select
-                options={[
-                  {
-                    label: "Never",
-                    value: 0,
-                  },
-                  ...fullWeeks,
-                ]}
-                value={currentEntry.doublePicksStart}
-                onChange={handleChangeDoublePicks}
+              <div>Entry Name</div>
+              <Input
+                value={currentEntry.name}
+                onChange={handleChangeEntryName}
                 style={{ width: "170px" }}
               />
             </div>
-            <div style={{ width: "100%" }}>
-              <TeamsUsedTitle>
-                <div>Teams Used</div>
-                <div>
-                  {"( "}
-                  <Checkbox
-                    checked={currentEntry.hide_on_grid}
-                    onChange={handleChangeHideOnGrid}
-                  >
-                    Hide on grid
-                  </Checkbox>
-                  {")"}
-                </div>
-              </TeamsUsedTitle>
-              <Select
-                options={rowData}
-                value={currentEntry.teams_used}
-                onChange={handleChangeTeamsUsed}
-                fieldNames={{
-                  label: "name",
-                  value: "name",
-                }}
-                mode="multiple"
-                disabled={currentWeek.value === 1}
-                allowClear
-                style={{ width: "100%" }}
-              />
-            </div>
-          </PanelWrapper>
-        </Card>
-      )}
+          </EntryButtons>
+          <EntryButtons>
+            <Button
+              type="primary"
+              onClick={handleSaveEntry}
+              disabled={!currentEntry.name || !loggedUser.logged_in || !isDirty}
+            >
+              Save
+            </Button>
+
+            <Button
+              type="primary"
+              onClick={handleLoadEntry}
+              disabled={!loggedUser.logged_in}
+            >
+              Load
+            </Button>
+            <Popconfirm
+              title="Delete the entry"
+              description="Are you sure to delete this entry?"
+              onConfirm={handleRemoveEntry}
+              okText="Yes"
+              cancelText="No"
+            >
+              <Button
+                danger
+                disabled={!currentEntry.name || !loggedUser.logged_in}
+              >
+                Delete
+              </Button>
+            </Popconfirm>
+
+            <Button onClick={handleClearEntry} disabled={!loggedUser.logged_in}>
+              Clear
+            </Button>
+          </EntryButtons>
+        </PanelWrapper>
+        <PanelWrapper>
+          <div>
+            <div>Double Picks Start</div>
+            <Select
+              options={[
+                {
+                  label: "Never",
+                  value: 0,
+                },
+                ...fullWeeks,
+              ]}
+              value={currentEntry.doublePicksStart}
+              onChange={handleChangeDoublePicks}
+              style={{ width: "170px" }}
+              disabled={!loggedUser.logged_in}
+            />
+          </div>
+          <div style={{ width: "100%" }}>
+            <TeamsUsedTitle>
+              <div>Teams Used</div>
+              <div>
+                {"( "}
+                <Checkbox
+                  checked={currentEntry.hide_on_grid}
+                  onChange={handleChangeHideOnGrid}
+                  disabled={!loggedUser.logged_in}
+                >
+                  Hide on grid
+                </Checkbox>
+                {")"}
+              </div>
+            </TeamsUsedTitle>
+            <Select
+              options={rowData}
+              value={currentEntry.teams_used}
+              onChange={handleChangeTeamsUsed}
+              fieldNames={{
+                label: "name",
+                value: "name",
+              }}
+              mode="multiple"
+              disabled={currentWeek.value === 1 || !loggedUser.logged_in}
+              allowClear
+              style={{ width: "100%" }}
+            />
+          </div>
+        </PanelWrapper>
+      </Card>
 
       <FilterWrapper>
         <Select
