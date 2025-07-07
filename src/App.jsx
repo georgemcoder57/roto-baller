@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react"; // React Data Grid Component
+import { BrowserView, isMobile, MobileView } from "react-device-detect";
 
 import "./App.css";
 import { API } from "./services/ApiService";
@@ -16,10 +17,15 @@ import {
   Popconfirm,
 } from "antd";
 import Calendar from "./assets/calendar.png";
+import LeftIcon from "./assets/left-icon.png";
+import MenuIcon from "./assets/menu.png";
 import {
   AppTitle,
   AppWrapper,
   EntryButtons,
+  EntryTitle,
+  FilterButtons,
+  FilterModal,
   FilterWrapper,
   GridWrapper,
   Links,
@@ -29,11 +35,16 @@ import {
   ToolText,
   TopWrapper,
 } from "./styles";
-import { ExclamationCircleOutlined } from "@ant-design/icons";
+import {
+  ExclamationCircleOutlined,
+  LeftOutlined,
+  MenuOutlined,
+} from "@ant-design/icons";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 function App() {
+  const [showAllSettings, setShowAllSettings] = useState(false);
   const [gridApi, setGridApi] = useState(null);
   const [modal, modalContextHolder] = Modal.useModal();
   const [api, contextHolder] = notification.useNotification();
@@ -103,6 +114,7 @@ function App() {
     })
       .then((res) => res.json())
       .then((data) => {
+        console.log("loading user", data);
         setLoggedUser(data);
       });
   };
@@ -162,27 +174,27 @@ function App() {
   };
 
   const getCellClass = (params) => {
-    if (!clickedCell) return "";
+    if (clickedCell) {
+      const isFirstClickedCellCol = params.colDef.field === clickedCell.colId;
+      const isFirstClickedCellRow = params.rowIndex === clickedCell.rowIndex;
 
-    const isFirstClickedCellCol = params.colDef.field === clickedCell.colId;
-    const isFirstClickedCellRow = params.rowIndex === clickedCell.rowIndex;
+      // if (currentEntry.teams_used.includes(params.data.name)) {
+      //   return "cell-selected";
+      // }
 
-    // if (currentEntry.teams_used.includes(params.data.name)) {
-    //   return "cell-selected";
-    // }
-
-    if (isFirstClickedCellCol && isFirstClickedCellRow) {
-      return "cell-selected";
+      if (isFirstClickedCellCol && isFirstClickedCellRow) {
+        return "cell-selected";
+      }
     }
 
-    if (!secondClickedCell) return "";
-
-    const isSecondClickedCellCol =
-      params.colDef.field === secondClickedCell.colId;
-    const isSecondClickedCellRow =
-      params.rowIndex === secondClickedCell.rowIndex;
-    if (isSecondClickedCellCol && isSecondClickedCellRow) {
-      return "cell-selected";
+    if (secondClickedCell) {
+      const isSecondClickedCellCol =
+        params.colDef.field === secondClickedCell.colId;
+      const isSecondClickedCellRow =
+        params.rowIndex === secondClickedCell.rowIndex;
+      if (isSecondClickedCellCol && isSecondClickedCellRow) {
+        return "cell-selected";
+      }
     }
 
     return "";
@@ -200,8 +212,8 @@ function App() {
         },
         sortable: true,
         comparator: (nodeA, nodeB) => {
-          const pointA = nodeA.data[`week${weekNum}`]?.point ?? 0;
-          const pointB = nodeB.data[`week${weekNum}`]?.point ?? 0;
+          const pointA = nodeA.point ?? 0;
+          const pointB = nodeB.point ?? 0;
           return pointA - pointB;
         },
         cellRenderer: (props) => {
@@ -265,6 +277,7 @@ function App() {
           );
         },
         width: 66,
+        minWidth: isMobile ? 86 : 60,
         flex: 1,
       }));
     return [
@@ -349,6 +362,7 @@ function App() {
         width: 56,
         flex: 1,
         pinned: "left",
+        minWidth: isMobile ? 66 : 56,
       },
       {
         field: "p_percent",
@@ -385,12 +399,20 @@ function App() {
             </div>
           );
         },
-        // width: 56,
+        width: 56,
         flex: 1,
+        minWidth: isMobile ? 66 : 56,
       },
       ...weekCols,
     ];
-  }, [showOptions, currentWeek, clickedCell, secondClickedCell, currentEntry]);
+  }, [
+    showOptions,
+    currentWeek,
+    clickedCell,
+    secondClickedCell,
+    currentEntry,
+    isMobile,
+  ]);
 
   const fetchTeamMemberList = async () => {
     try {
@@ -599,7 +621,8 @@ function App() {
           description: "All saved entries have been loaded successfully.",
           placement: "bottomRight",
         });
-        setCurrentEntry(data[0]);
+
+        handleChangeCurrentEntry(data[0]);
         setIsDirty(false);
       } catch (e) {
         console.log(e);
@@ -644,7 +667,7 @@ function App() {
     });
   };
 
-  const handleChangeCurrentEntry = (value, option) => {
+  const handleChangeCurrentEntry = (option) => {
     setCurrentEntry(option);
 
     if (option.team1) {
@@ -685,22 +708,41 @@ function App() {
   };
 
   const isDisabled = (params) => {
-    if (!clickedCell) return false;
     if (secondClickedCell) {
-      if (
-        (params.rowIndex === clickedCell.rowIndex &&
-          params.colDef.field === clickedCell.colId) ||
-        (params.rowIndex === secondClickedCell.rowIndex &&
-          params.colDef.field === secondClickedCell.colId)
-      ) {
-        return false;
+      if (clickedCell) {
+        if (
+          (params.rowIndex === clickedCell.rowIndex &&
+            params.colDef.field === clickedCell.colId) ||
+          (params.rowIndex === secondClickedCell.rowIndex &&
+            params.colDef.field === secondClickedCell.colId)
+        ) {
+          return false;
+        }
+        return (
+          params.rowIndex === clickedCell.rowIndex ||
+          params.rowIndex === secondClickedCell.rowIndex ||
+          currentEntry.teams_used.includes(params.data.name) ||
+          (params.colDef.field === clickedCell.colId &&
+            params.rowIndex !== clickedCell.rowindex) ||
+          (params.colDef.field === secondClickedCell.colId &&
+            params.rowIndex !== secondClickedCell.rowindex)
+        );
+      } else {
+        if (
+          params.rowIndex === secondClickedCell.rowIndex &&
+          params.colDef.field === secondClickedCell.colId
+        ) {
+          return false;
+        }
+        return (
+          params.rowIndex === secondClickedCell.rowIndex ||
+          currentEntry.teams_used.includes(params.data.name) ||
+          (params.colDef.field === secondClickedCell.colId &&
+            params.rowIndex !== secondClickedCell.rowindex)
+        );
       }
-      return (
-        params.rowIndex === clickedCell.rowIndex ||
-        params.rowIndex === secondClickedCell.rowIndex ||
-        currentEntry.teams_used.includes(params.data.name)
-      );
-    } else {
+    }
+    if (clickedCell) {
       if (
         params.rowIndex === clickedCell.rowIndex &&
         params.colDef.field === clickedCell.colId
@@ -709,6 +751,8 @@ function App() {
       }
       return (
         params.rowIndex === clickedCell.rowIndex ||
+        (params.colDef.field === clickedCell.colId &&
+          params.rowIndex !== clickedCell.rowindex) ||
         currentEntry.teams_used.includes(params.data.name)
       );
     }
@@ -745,6 +789,24 @@ function App() {
       event.colDef.field === clickedCell.colId
     ) {
       setClickedCell(null);
+      setCurrentEntry({
+        ...currentEntry,
+        team1: "",
+      });
+      return;
+    }
+
+    if (
+      clickedCell &&
+      currentEntry.doublePicksStart > 0 &&
+      event.rowIndex === clickedCell.rowIndex &&
+      event.colDef.field === clickedCell.colId
+    ) {
+      setClickedCell(null);
+      setCurrentEntry({
+        ...currentEntry,
+        team1: "",
+      });
       return;
     }
 
@@ -755,6 +817,10 @@ function App() {
       event.colDef.field === secondClickedCell.colId
     ) {
       setSecondClickedCell(null);
+      setCurrentEntry({
+        ...currentEntry,
+        team2: "",
+      });
       return;
     }
 
@@ -857,6 +923,12 @@ function App() {
     }
   };
 
+  const handleShowAllSettings = () => {
+    setShowAllSettings(!showAllSettings);
+  };
+
+  console.log("loggedUser", loggedUser, currentEntry, filteredData);
+
   return (
     <AppWrapper>
       {contextHolder}
@@ -886,7 +958,7 @@ function App() {
       </TopWrapper>
       <Card
         title={
-          <EntryButtons>
+          <EntryTitle>
             <div>Your Saved Entries</div>
             <Select
               options={loadedEntries}
@@ -898,10 +970,10 @@ function App() {
                 value: "id",
               }}
             />
-          </EntryButtons>
+          </EntryTitle>
         }
         extra={"(click games on the grid to highlight)"}
-        style={{ width: "100%", marginTop: "20px" }}
+        style={{ width: "100%" }}
       >
         <PanelWrapper>
           <EntryButtons>
@@ -1007,41 +1079,50 @@ function App() {
           onChange={handleChangeWeek}
           style={{ width: "170px", height: "44px", margin: "10px 0px" }}
         />
-        <ToolOutline>
-          <Switch
-            checked={showOptions.away}
-            onChange={(checked) => handleToggle(checked, "away")}
-          />
-          <ToolText>Away Games</ToolText>
-        </ToolOutline>
-        <ToolOutline>
-          <Switch
-            checked={showOptions.divisional}
-            onChange={(checked) => handleToggle(checked, "divisional")}
-          />
-          <ToolText>Divisional Games</ToolText>
-        </ToolOutline>
-        <ToolOutline>
-          <Switch
-            checked={showOptions.thursday}
-            onChange={(checked) => handleToggle(checked, "thursday")}
-          />
-          <ToolText>Thursday Games</ToolText>
-        </ToolOutline>
-        <ToolOutline>
-          <Switch
-            checked={showOptions.monday}
-            onChange={(checked) => handleToggle(checked, "monday")}
-          />
-          <ToolText>Monday Games</ToolText>
-        </ToolOutline>
-        <ToolOutline>
-          <Switch
-            checked={showOptions.spreads}
-            onChange={(checked) => handleToggle(checked, "spreads")}
-          />
-          <ToolText>Spreads</ToolText>
-        </ToolOutline>
+        {isMobile ? (
+          <div className="all-button" onClick={() => handleShowAllSettings()}>
+            <img src={MenuIcon} alt="" width="20px" height="20px" />
+            <div className="all-button-text">All Settings</div>
+          </div>
+        ) : (
+          <FilterButtons>
+            <ToolOutline>
+              <Switch
+                checked={showOptions.away}
+                onChange={(checked) => handleToggle(checked, "away")}
+              />
+              <ToolText>Away Games</ToolText>
+            </ToolOutline>
+            <ToolOutline>
+              <Switch
+                checked={showOptions.divisional}
+                onChange={(checked) => handleToggle(checked, "divisional")}
+              />
+              <ToolText>Divisional Games</ToolText>
+            </ToolOutline>
+            <ToolOutline>
+              <Switch
+                checked={showOptions.thursday}
+                onChange={(checked) => handleToggle(checked, "thursday")}
+              />
+              <ToolText>Thursday Games</ToolText>
+            </ToolOutline>
+            <ToolOutline>
+              <Switch
+                checked={showOptions.monday}
+                onChange={(checked) => handleToggle(checked, "monday")}
+              />
+              <ToolText>Monday Games</ToolText>
+            </ToolOutline>
+            <ToolOutline>
+              <Switch
+                checked={showOptions.spreads}
+                onChange={(checked) => handleToggle(checked, "spreads")}
+              />
+              <ToolText>Spreads</ToolText>
+            </ToolOutline>
+          </FilterButtons>
+        )}
       </FilterWrapper>
       <GridWrapper>
         <AgGridReact
@@ -1052,10 +1133,58 @@ function App() {
           headerHeight={41}
           onCellClicked={handleCellClick}
           onGridReady={onGridReady}
-          // isExternalFilterPresent={isExternalFilterPresent}
-          // doesExternalFilterPass={doesExternalFilterPass}
         />
       </GridWrapper>
+      {showAllSettings && (
+        <FilterModal>
+          <div className="top-section">
+            <div
+              className="go-back-btn"
+              onClick={() => handleShowAllSettings()}
+            >
+              <img src={LeftIcon} width="20px" height="20px" alt="" />
+            </div>
+            <div className="top-section-text">All Settings</div>
+          </div>
+          <div className="all-settings-content">
+            <div className="mobile-setting-wrapper">
+              <ToolText>Away Games</ToolText>
+              <Switch
+                checked={showOptions.away}
+                onChange={(checked) => handleToggle(checked, "away")}
+              />
+            </div>
+            <div className="mobile-setting-wrapper">
+              <ToolText>Divisional Games</ToolText>
+              <Switch
+                checked={showOptions.divisional}
+                onChange={(checked) => handleToggle(checked, "divisional")}
+              />
+            </div>
+            <div className="mobile-setting-wrapper">
+              <ToolText>Thursday Games</ToolText>
+              <Switch
+                checked={showOptions.thursday}
+                onChange={(checked) => handleToggle(checked, "thursday")}
+              />
+            </div>
+            <div className="mobile-setting-wrapper">
+              <ToolText>Monday Games</ToolText>
+              <Switch
+                checked={showOptions.monday}
+                onChange={(checked) => handleToggle(checked, "monday")}
+              />
+            </div>
+            <div className="mobile-setting-wrapper">
+              <ToolText>Spreads</ToolText>
+              <Switch
+                checked={showOptions.spreads}
+                onChange={(checked) => handleToggle(checked, "spreads")}
+              />
+            </div>
+          </div>
+        </FilterModal>
+      )}
     </AppWrapper>
   );
 }
