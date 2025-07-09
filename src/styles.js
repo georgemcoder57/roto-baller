@@ -10,6 +10,30 @@ export const AppWrapper = styled.div`
       display: block;
     }
   }
+
+  .entry-title,
+  .entry-name,
+  .double-picks-start,
+  .teams-used,
+  .ant-card-extra,
+  .ant-select-selection-item {
+    @media screen and (max-width: 480px) {
+      font-size: 16px !important;
+      line-height: 100% !important;
+    }
+  }
+
+  .double-picks-start {
+    @media screen and (max-width: 480px) {
+      margin: 10px 0px 5px 0px;
+    }
+  }
+
+  .entry-name {
+    @media screen and (max-width: 480px) {
+      margin-bottom: 5px;
+    }
+  }
 `;
 
 export const FilterWrapper = styled.div`
@@ -21,6 +45,13 @@ export const FilterWrapper = styled.div`
 
   @media screen and (max-width: 780px) {
     justify-content: center;
+  }
+
+  .ant-select-selection-item {
+    @media screen and (max-width: 480px) {
+      font-size: 16px !important;
+      line-height: 100% !important;
+    }
   }
 
   .all-button {

@@ -48,15 +48,13 @@ function App() {
   const [gridApi, setGridApi] = useState(null);
   const [modal, modalContextHolder] = Modal.useModal();
   const [api, contextHolder] = notification.useNotification();
-  const [clickedCell, setClickedCell] = useState(null);
-  const [secondClickedCell, setSecondClickedCell] = useState(null);
+  const [clickedCells, setClickedCells] = useState([]);
   const [loadedEntries, setLoadedEntries] = useState([]);
   const [currentEntry, setCurrentEntry] = useState({
     id: "",
     name: "",
     doublePicksStart: 0,
-    team1: "",
-    team2: null,
+    clicked_cells: [],
     teams_used: [],
     hide_on_grid: false,
     week: 1,
@@ -95,6 +93,12 @@ function App() {
   useEffect(() => {
     fetchTeamMemberList();
   }, []);
+
+  useEffect(() => {
+    if (loggedUser.logged_in) {
+      handleLoadEntry();
+    }
+  }, [loggedUser]);
 
   useEffect(() => {
     if (teamMembers.length > 0) {
@@ -174,27 +178,14 @@ function App() {
   };
 
   const getCellClass = (params) => {
-    if (clickedCell) {
-      const isFirstClickedCellCol = params.colDef.field === clickedCell.colId;
-      const isFirstClickedCellRow = params.rowIndex === clickedCell.rowIndex;
-
-      // if (currentEntry.teams_used.includes(params.data.name)) {
-      //   return "cell-selected";
-      // }
-
-      if (isFirstClickedCellCol && isFirstClickedCellRow) {
-        return "cell-selected";
-      }
-    }
-
-    if (secondClickedCell) {
-      const isSecondClickedCellCol =
-        params.colDef.field === secondClickedCell.colId;
-      const isSecondClickedCellRow =
-        params.rowIndex === secondClickedCell.rowIndex;
-      if (isSecondClickedCellCol && isSecondClickedCellRow) {
-        return "cell-selected";
-      }
+    if (
+      clickedCells.find(
+        (item) =>
+          item.colId === params.colDef.field &&
+          item.rowIndex === params.rowIndex
+      )
+    ) {
+      return "cell-selected";
     }
 
     return "";
@@ -218,16 +209,17 @@ function App() {
         },
         cellRenderer: (props) => {
           const { node, colDef } = props;
-          const isSameFirstCol = clickedCell?.colId === colDef.field;
-          const isOtherFirstCol = clickedCell?.colId !== colDef.field;
-          const isSameFirstRow = clickedCell?.rowIndex === node.rowIndex;
-          const isOtherFirstRow = clickedCell?.rowIndex !== node.rowIndex;
-
-          const isSameSecondCol = secondClickedCell?.colId === colDef.field;
-          const isOtherSecondCol = secondClickedCell?.colId !== colDef.field;
-          const isSameSecondRow = secondClickedCell?.rowIndex === node.rowIndex;
-          const isOtherSecondRow =
-            secondClickedCell?.rowIndex !== node.rowIndex;
+          const isSameRow = clickedCells.find(
+            (item) => item.rowIndex === node.rowIndex
+          );
+          const isSameCol = clickedCells.find(
+            (item) =>
+              item.colId === colDef.field && node.rowIndex !== item.rowindex
+          );
+          const isCurrentCell = clickedCells.find(
+            (item) =>
+              node.rowIndex === item.rowIndex && colDef.field === item.colId
+          );
 
           return (
             <div
@@ -241,26 +233,10 @@ function App() {
               {currentEntry.teams_used.includes(props.data.name) && (
                 <div className="red-bar-horizontal" />
               )}
-              {isOtherFirstCol && isSameFirstRow && (
+              {!isCurrentCell && isSameRow && (
                 <div className="red-bar-horizontal" />
               )}
-              {isOtherSecondCol && isSameSecondRow && (
-                <div className="red-bar-horizontal" />
-              )}
-              {isSameFirstCol && isOtherFirstRow && (
-                <div
-                  className={`red-bar ${
-                    isSameSecondCol && isSameSecondRow ? "hide-red-bar" : ""
-                  }`}
-                />
-              )}
-              {isSameSecondCol && isOtherSecondRow && (
-                <div
-                  className={`red-bar ${
-                    isSameFirstCol && isSameFirstRow ? "hide-red-bar" : ""
-                  }`}
-                />
-              )}
+              {!isCurrentCell && isSameCol && <div className={`red-bar`} />}
               <div className="name-value">
                 {props.data[`week${weekNum}`].name}
               </div>
@@ -288,22 +264,17 @@ function App() {
         sortable: false,
         cellRenderer: (props) => {
           const { node, colDef } = props;
-          const isOtherFirstCol = clickedCell?.colId !== colDef.field;
-          const isSameFirstRow = clickedCell?.rowIndex === node.rowIndex;
-
-          const isOtherSecondCol = secondClickedCell?.colId !== colDef.field;
-          const isSameSecondRow = secondClickedCell?.rowIndex === node.rowIndex;
-          if (
-            (clickedCell && isOtherFirstCol && isSameFirstRow) ||
-            (secondClickedCell && isOtherSecondCol && isSameSecondRow)
-          ) {
-            return (
-              <div className="team-name">
-                <div className="red-bar-horizontal" />
-                {props.value}
-              </div>
-            );
-          }
+          const isSameRow = clickedCells.find(
+            (item) => item.rowIndex === node.rowIndex
+          );
+          const isSameCol = clickedCells.find(
+            (item) =>
+              item.colId === colDef.field && node.rowIndex !== item.rowindex
+          );
+          const isCurrentCell = clickedCells.find(
+            (item) =>
+              node.rowIndex === item.rowIndex && colDef.field === item.colId
+          );
 
           return (
             <div
@@ -314,6 +285,9 @@ function App() {
               }`}
             >
               {currentEntry.teams_used.includes(props.value) && (
+                <div className="red-bar-horizontal" />
+              )}
+              {!isCurrentCell && isSameRow && (
                 <div className="red-bar-horizontal" />
               )}
               {props.value}
@@ -333,26 +307,24 @@ function App() {
         },
         cellRenderer: (props) => {
           const { node, colDef } = props;
-          const isOtherFirstCol = clickedCell?.colId !== colDef.field;
-          const isSameFirstRow = clickedCell?.rowIndex === node.rowIndex;
-
-          const isOtherSecondCol = secondClickedCell?.colId !== colDef.field;
-          const isSameSecondRow = secondClickedCell?.rowIndex === node.rowIndex;
-          if (
-            (clickedCell && isOtherFirstCol && isSameFirstRow) ||
-            (secondClickedCell && isOtherSecondCol && isSameSecondRow)
-          ) {
-            return (
-              <div className="win-percent">
-                <div className="red-bar-horizontal" />
-                {`${props.value}%`}
-              </div>
-            );
-          }
+          const isSameRow = clickedCells.find(
+            (item) => item.rowIndex === node.rowIndex
+          );
+          const isSameCol = clickedCells.find(
+            (item) =>
+              item.colId === colDef.field && node.rowIndex !== item.rowindex
+          );
+          const isCurrentCell = clickedCells.find(
+            (item) =>
+              node.rowIndex === item.rowIndex && colDef.field === item.colId
+          );
 
           return (
             <div className="win-percent">
               {currentEntry.teams_used.includes(props.data.name) && (
+                <div className="red-bar-horizontal" />
+              )}
+              {!isCurrentCell && isSameRow && (
                 <div className="red-bar-horizontal" />
               )}
               {`${props.value}%`}
@@ -373,26 +345,24 @@ function App() {
         },
         cellRenderer: (props) => {
           const { node, colDef } = props;
-          const isOtherFirstCol = clickedCell?.colId !== colDef.field;
-          const isSameFirstRow = clickedCell?.rowIndex === node.rowIndex;
+          const isSameRow = clickedCells.find(
+            (item) => item.rowIndex === node.rowIndex
+          );
+          const isSameCol = clickedCells.find(
+            (item) =>
+              item.colId === colDef.field && node.rowIndex !== item.rowindex
+          );
+          const isCurrentCell = clickedCells.find(
+            (item) =>
+              node.rowIndex === item.rowIndex && colDef.field === item.colId
+          );
 
-          const isOtherSecondCol = secondClickedCell?.colId !== colDef.field;
-          const isSameSecondRow = secondClickedCell?.rowIndex === node.rowIndex;
-
-          if (
-            (clickedCell && isOtherFirstCol && isSameFirstRow) ||
-            (secondClickedCell && isOtherSecondCol && isSameSecondRow)
-          ) {
-            return (
-              <div className="pick-percent">
-                <div className="red-bar-horizontal" />
-                {`${props.value}%`}
-              </div>
-            );
-          }
           return (
             <div className="pick-percent">
               {currentEntry.teams_used.includes(props.data.name) && (
+                <div className="red-bar-horizontal" />
+              )}
+              {!isCurrentCell && isSameRow && (
                 <div className="red-bar-horizontal" />
               )}
               {`${props.value}%`}
@@ -405,14 +375,7 @@ function App() {
       },
       ...weekCols,
     ];
-  }, [
-    showOptions,
-    currentWeek,
-    clickedCell,
-    secondClickedCell,
-    currentEntry,
-    isMobile,
-  ]);
+  }, [showOptions, currentWeek, currentEntry, isMobile, clickedCells]);
 
   const fetchTeamMemberList = async () => {
     try {
@@ -494,6 +457,7 @@ function App() {
 
       let customRows = [];
       transformedData.forEach((team) => {
+        console.log(team);
         let row = {};
         row.name = team.name;
         row.ev = team.ev;
@@ -524,11 +488,15 @@ function App() {
             const awayTeamInfo = teamMembers.find(
               (t) => t.TeamID === game.GlobalAwayTeamID
             );
+            if (game.AwayTeam === 'BAL') {
+              console.log('asdfasdfasdfasdf', homeTeamInfo, awayTeamInfo);
+            }
             if (homeTeamInfo && awayTeamInfo) {
-              if (homeTeamInfo.Division === awayTeamInfo.Division)
+              if (
+                homeTeamInfo.Division === awayTeamInfo.Division &&
+                homeTeamInfo.Conference === awayTeamInfo.Conference
+              )
                 row[`week${game.Week}`].type = "sd";
-              if (homeTeamInfo.Conference === awayTeamInfo.Conference)
-                row[`week${game.Week}`].type = "sc";
             }
           }
         });
@@ -545,14 +513,12 @@ function App() {
   const handleChangeWeek = (value, option) => {
     setIsDirty(true);
     setCurrentWeek(option);
-    setClickedCell(null);
-    setSecondClickedCell(null);
-    setCurrentEntry({
-      ...currentEntry,
-      team1: "",
-      team2: "",
-      week: value,
-    });
+    // setCurrentEntry({
+    //   ...currentEntry,
+    //   team1: "",
+    //   team2: "",
+    //   week: value,
+    // });
   };
 
   const handleToggle = (checked, type) => {
@@ -570,6 +536,7 @@ function App() {
     try {
       const payload = {
         ...currentEntry,
+        clicked_cells: clickedCells,
         week: currentWeek.value,
         user: loggedUser,
       };
@@ -607,8 +574,7 @@ function App() {
         id: "",
         name: "",
         doublePicksStart: 0,
-        team1: "",
-        team2: null,
+        clicked_cells: [],
         teams_used: [],
         hide_on_grid: false,
         week: 1,
@@ -616,13 +582,15 @@ function App() {
       try {
         const { data } = await API.get(`/entry/${loggedUser.user.id}`);
         setLoadedEntries(data);
-        api.success({
-          message: "Entries Loaded",
-          description: "All saved entries have been loaded successfully.",
-          placement: "bottomRight",
-        });
 
-        handleChangeCurrentEntry(data[0]);
+        if (data.length > 0) {
+          handleChangeCurrentEntry(data[0]);
+          api.success({
+            message: "Entries Loaded",
+            description: "All saved entries have been loaded successfully.",
+            placement: "bottomRight",
+          });
+        }
         setIsDirty(false);
       } catch (e) {
         console.log(e);
@@ -649,14 +617,11 @@ function App() {
     setCurrentEntry({
       name: "",
       doublePicksStart: 0,
-      team1: "",
-      team2: "",
+      clicked_cells: [],
       teams_used: null,
       hide_on_grid: false,
       week: 1,
     });
-    setClickedCell(null);
-    setSecondClickedCell(null);
   };
 
   const handleChangeDoublePicks = (value, option) => {
@@ -669,26 +634,6 @@ function App() {
 
   const handleChangeCurrentEntry = (option) => {
     setCurrentEntry(option);
-
-    if (option.team1) {
-      const rowIndex = filteredData.findIndex(
-        (item) => item.name === option.team1
-      );
-      setClickedCell({
-        rowIndex,
-        colId: `week${option.week}`,
-      });
-    }
-
-    if (option.team2) {
-      const rowIndex = filteredData.findIndex(
-        (item) => item.name === option.team2
-      );
-      setSecondClickedCell({
-        rowIndex,
-        colId: `week${option.doublePicksStart}`,
-      });
-    }
   };
 
   const handleChangeTeamsUsed = (value, option) => {
@@ -708,164 +653,131 @@ function App() {
   };
 
   const isDisabled = (params) => {
-    if (secondClickedCell) {
-      if (clickedCell) {
-        if (
-          (params.rowIndex === clickedCell.rowIndex &&
-            params.colDef.field === clickedCell.colId) ||
-          (params.rowIndex === secondClickedCell.rowIndex &&
-            params.colDef.field === secondClickedCell.colId)
-        ) {
-          return false;
-        }
-        return (
-          params.rowIndex === clickedCell.rowIndex ||
-          params.rowIndex === secondClickedCell.rowIndex ||
-          currentEntry.teams_used.includes(params.data.name) ||
-          (params.colDef.field === clickedCell.colId &&
-            params.rowIndex !== clickedCell.rowindex) ||
-          (params.colDef.field === secondClickedCell.colId &&
-            params.rowIndex !== secondClickedCell.rowindex)
-        );
-      } else {
-        if (
-          params.rowIndex === secondClickedCell.rowIndex &&
-          params.colDef.field === secondClickedCell.colId
-        ) {
-          return false;
-        }
-        return (
-          params.rowIndex === secondClickedCell.rowIndex ||
-          currentEntry.teams_used.includes(params.data.name) ||
-          (params.colDef.field === secondClickedCell.colId &&
-            params.rowIndex !== secondClickedCell.rowindex)
-        );
-      }
+    if (
+      clickedCells.find(
+        (item) =>
+          params.rowIndex === item.rowIndex &&
+          params.colDef.field === item.colId
+      )
+    ) {
+      return false;
     }
-    if (clickedCell) {
+
+    if (
+      currentEntry.doublePicksStart > 0 &&
+      parseInt(params.colDef.field.replace(/\D/g, ""), 10) >=
+        currentEntry.doublePicksStart
+    ) {
       if (
-        params.rowIndex === clickedCell.rowIndex &&
-        params.colDef.field === clickedCell.colId
+        clickedCells.find((item) => item.rowIndex === params.rowIndex) ||
+        currentEntry.teams_used.includes(params.data.name)
+      ) {
+        return true;
+      }
+
+      if (
+        clickedCells.find(
+          (item) =>
+            item.colId === params.colDef.field &&
+            params.rowIndex !== item.rowindex
+        )
       ) {
         return false;
       }
-      return (
-        params.rowIndex === clickedCell.rowIndex ||
-        (params.colDef.field === clickedCell.colId &&
-          params.rowIndex !== clickedCell.rowindex) ||
-        currentEntry.teams_used.includes(params.data.name)
-      );
+    } else {
+      if (
+        clickedCells.find((item) => item.rowIndex === params.rowIndex) ||
+        currentEntry.teams_used.includes(params.data.name) ||
+        clickedCells.find(
+          (item) =>
+            item.colId === params.colDef.field &&
+            params.rowIndex !== item.rowindex
+        )
+      ) {
+        return true;
+      }
     }
+
+    return false;
   };
 
   const handleCellClick = (event) => {
     setIsDirty(true);
-    if (event.colDef.field === "name") {
-      if (
-        event.data.name === currentEntry.team1 ||
-        event.data.name === currentEntry.team2
-      ) {
+    const cellData = {
+      colId: event.colDef.field,
+      rowIndex: event.rowIndex,
+      team: event.data.name,
+      week: parseInt(event.colDef.field.replace(/\D/g, ""), 10),
+    };
+
+    if (cellData.colId === "name") {
+      if (clickedCells.find((item) => item.team === cellData.team)) {
         return;
       }
       let customTeamsUsed = [...currentEntry.teams_used];
-      if (customTeamsUsed.includes(event.data.name)) {
+      if (customTeamsUsed.includes(cellData.team)) {
         customTeamsUsed = customTeamsUsed.filter(
-          (item) => item !== event.data.name
+          (item) => item !== cellData.team
         );
       } else {
-        customTeamsUsed.push(event.data.name);
+        customTeamsUsed.push(cellData.team);
       }
       setCurrentEntry({
         ...currentEntry,
         teams_used: customTeamsUsed,
       });
     }
-    if (!event.colDef.field.includes("week")) return;
-
-    if (
-      clickedCell &&
-      currentEntry.doublePicksStart === 0 &&
-      event.rowIndex === clickedCell.rowIndex &&
-      event.colDef.field === clickedCell.colId
-    ) {
-      setClickedCell(null);
-      setCurrentEntry({
-        ...currentEntry,
-        team1: "",
-      });
-      return;
-    }
-
-    if (
-      clickedCell &&
-      currentEntry.doublePicksStart > 0 &&
-      event.rowIndex === clickedCell.rowIndex &&
-      event.colDef.field === clickedCell.colId
-    ) {
-      setClickedCell(null);
-      setCurrentEntry({
-        ...currentEntry,
-        team1: "",
-      });
-      return;
-    }
-
-    if (
-      secondClickedCell &&
-      currentEntry.doublePicksStart > 0 &&
-      event.rowIndex === secondClickedCell.rowIndex &&
-      event.colDef.field === secondClickedCell.colId
-    ) {
-      setSecondClickedCell(null);
-      setCurrentEntry({
-        ...currentEntry,
-        team2: "",
-      });
-      return;
-    }
-
-    if (
-      currentEntry.doublePicksStart > 0 &&
-      clickedCell &&
-      event.rowIndex === clickedCell.rowIndex
-    ) {
-      modal.confirm({
-        title: "Error!",
-        icon: <ExclamationCircleOutlined />,
-        content:
-          "The team of the second pick should different with the first pick",
-      });
-      return;
-    }
+    if (!cellData.colId.includes("week")) return;
 
     if (currentEntry.doublePicksStart === 0) {
-      setClickedCell({
-        rowIndex: event.rowIndex,
-        colId: event.colDef.field,
-      });
-      setCurrentEntry({
-        ...currentEntry,
-        team1: event.data.name,
-      });
-    } else {
-      if (!clickedCell) {
-        setClickedCell({
-          rowIndex: event.rowIndex,
-          colId: event.colDef.field,
-        });
-        setCurrentEntry({
-          ...currentEntry,
-          team1: event.data.name,
-        });
+      if (!clickedCells.find((item) => item.colId === cellData.colId)) {
+        const customClickedCells = [...clickedCells];
+        customClickedCells.push(cellData);
+        setClickedCells(customClickedCells);
       } else {
-        setSecondClickedCell({
-          rowIndex: event.rowIndex,
-          colId: event.colDef.field,
-        });
-        setCurrentEntry({
-          ...currentEntry,
-          team2: event.data.name,
-        });
+        const customClickedCells = [...clickedCells].filter(
+          (item) => item.colId !== event.colDef.field
+        );
+        setClickedCells(customClickedCells);
+      }
+      return;
+    }
+    if (currentEntry.doublePicksStart > 0) {
+      if (cellData.week >= currentEntry.doublePicksStart) {
+        if (
+          !clickedCells.find(
+            (item) =>
+              item.colId === cellData.colId &&
+              item.rowIndex === cellData.rowIndex
+          )
+        ) {
+          if (
+            clickedCells.filter((item) => item.colId === cellData.colId)
+              .length < 2
+          ) {
+            const customClickedCells = [...clickedCells];
+            customClickedCells.push(cellData);
+            setClickedCells(customClickedCells);
+            return;
+          }
+        }
+
+        if (
+          clickedCells.find(
+            (item) =>
+              item.colId === cellData.colId &&
+              item.rowIndex === cellData.rowIndex
+          )
+        ) {
+          const customClickedCells = [...clickedCells].filter(
+            (item) =>
+              !(
+                item.colId === cellData.colId &&
+                item.rowIndex === cellData.rowIndex
+              )
+          );
+          setClickedCells(customClickedCells);
+        }
       }
     }
   };
@@ -927,7 +839,7 @@ function App() {
     setShowAllSettings(!showAllSettings);
   };
 
-  console.log("loggedUser", loggedUser, currentEntry, filteredData);
+  console.log("-------------", clickedCells, filteredData, currentEntry);
 
   return (
     <AppWrapper>
@@ -959,7 +871,7 @@ function App() {
       <Card
         title={
           <EntryTitle>
-            <div>Your Saved Entries</div>
+            <div className="entry-title">Your Saved Entries</div>
             <Select
               options={loadedEntries}
               value={currentEntry.id}
@@ -978,7 +890,7 @@ function App() {
         <PanelWrapper>
           <EntryButtons>
             <div>
-              <div>Entry Name</div>
+              <div className="entry-name">Entry Name</div>
               <Input
                 value={currentEntry.name}
                 onChange={handleChangeEntryName}
@@ -995,13 +907,13 @@ function App() {
               Save
             </Button>
 
-            <Button
+            {/* <Button
               type="primary"
               onClick={handleLoadEntry}
               disabled={!loggedUser.logged_in}
             >
               Load
-            </Button>
+            </Button> */}
             <Popconfirm
               title="Delete the entry"
               description="Are you sure to delete this entry?"
@@ -1024,7 +936,7 @@ function App() {
         </PanelWrapper>
         <PanelWrapper>
           <div>
-            <div>Double Picks Start</div>
+            <div className="double-picks-start">Double Picks Start</div>
             <Select
               options={[
                 {
@@ -1041,7 +953,7 @@ function App() {
           </div>
           <div style={{ width: "100%" }}>
             <TeamsUsedTitle>
-              <div>Teams Used</div>
+              <div className="teams-used">Teams Used</div>
               <div>
                 {"( "}
                 <Checkbox
@@ -1133,6 +1045,11 @@ function App() {
           headerHeight={41}
           onCellClicked={handleCellClick}
           onGridReady={onGridReady}
+          defaultColDef={{
+            sortable: true,
+            sortingOrder: ["asc", "desc"], // disables 3rd state
+            suppressMovable: true,
+          }}
         />
       </GridWrapper>
       {showAllSettings && (
