@@ -4,6 +4,15 @@ export const AppWrapper = styled.div`
   border: none !important;
   position: relative;
 
+  .mobile-filter-panel {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
   .ant-card-head-wrapper {
     @media screen and (max-width: 780px) {
       padding-top: 20px;
@@ -38,7 +47,7 @@ export const AppWrapper = styled.div`
 
 export const FilterWrapper = styled.div`
   display: flex;
-  margin: 16px 0px;
+  margin-top: 16px;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
@@ -140,6 +149,10 @@ export const ToolOutline = styled.div`
   align-items: center;
   justify-content: flex-start;
   gap: 16px;
+
+  @media screen and (max-width: 780px) {
+    width: 85%;
+  }
 `;
 
 export const ToolText = styled.div`
@@ -170,6 +183,7 @@ export const GridWrapper = styled.div`
   height: 1365px;
   width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
   margin: 0 !important;
 
   .ag-root-wrapper-body {
@@ -407,63 +421,5 @@ export const EntryTitle = styled.div`
 
   @media screen and (max-width: 780px) {
     flex-wrap: wrap;
-  }
-`;
-
-export const FilterModal = styled.div`
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  z-index: 5;
-  background: #f8f8f8;
-  overflow: hidden;
-
-  .top-section {
-    display: flex;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-
-    .go-back-btn {
-      position: absolute;
-      left: 20px;
-      top: 20px;
-      width: 20px;
-      height: 20px;
-    }
-
-    .top-section-text {
-      text-align: center;
-      width: 100%;
-      font-weight: 400;
-      font-style: Regular;
-      font-size: 24px;
-      line-height: 100%;
-      letter-spacing: 0%;
-
-      @media screen and (max-width: 480px) {
-        font-size: 24px !important;
-        line-height: 100% !important;
-      }
-    }
-  }
-
-  .all-settings-content {
-    padding: 16px;
-
-    .mobile-setting-wrapper {
-      width: calc(100% - 32px);
-      background: white;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px;
-    }
   }
 `;

@@ -17,7 +17,6 @@ import {
   Popconfirm,
 } from "antd";
 import Calendar from "./assets/calendar.png";
-import LeftIcon from "./assets/left-icon.png";
 import MenuIcon from "./assets/menu.png";
 import {
   AppTitle,
@@ -25,7 +24,6 @@ import {
   EntryButtons,
   EntryTitle,
   FilterButtons,
-  FilterModal,
   FilterWrapper,
   GridWrapper,
   Links,
@@ -35,11 +33,6 @@ import {
   ToolText,
   TopWrapper,
 } from "./styles";
-import {
-  ExclamationCircleOutlined,
-  LeftOutlined,
-  MenuOutlined,
-} from "@ant-design/icons";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -48,7 +41,6 @@ function App() {
   const [gridApi, setGridApi] = useState(null);
   const [modal, modalContextHolder] = Modal.useModal();
   const [api, contextHolder] = notification.useNotification();
-  const [clickedCells, setClickedCells] = useState([]);
   const [loadedEntries, setLoadedEntries] = useState([]);
   const [currentEntry, setCurrentEntry] = useState({
     id: "",
@@ -68,10 +60,7 @@ function App() {
       email: "GeorgeMCoder57@gmail.com",
     },
   });
-  const [currentWeek, setCurrentWeek] = useState({
-    label: "Week 1",
-    value: 1,
-  });
+  const [currentWeek, setCurrentWeek] = useState();
   const [fullWeeks, setFullWeeks] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -179,7 +168,7 @@ function App() {
 
   const getCellClass = (params) => {
     if (
-      clickedCells.find(
+      currentEntry.clicked_cells.find(
         (item) =>
           item.colId === params.colDef.field &&
           item.rowIndex === params.rowIndex
@@ -192,6 +181,9 @@ function App() {
   };
 
   const customColDefs = useMemo(() => {
+    if (!currentWeek) {
+      return;
+    }
     const weekCols = Array.from({ length: 18 }, (_, i) => i + 1)
       .filter((weekNum) => weekNum >= currentWeek.value)
       .map((weekNum) => ({
@@ -209,14 +201,14 @@ function App() {
         },
         cellRenderer: (props) => {
           const { node, colDef } = props;
-          const isSameRow = clickedCells.find(
+          const isSameRow = currentEntry.clicked_cells.find(
             (item) => item.rowIndex === node.rowIndex
           );
-          const isSameCol = clickedCells.find(
+          const isSameCol = currentEntry.clicked_cells.find(
             (item) =>
               item.colId === colDef.field && node.rowIndex !== item.rowindex
           );
-          const isCurrentCell = clickedCells.find(
+          const isCurrentCell = currentEntry.clicked_cells.find(
             (item) =>
               node.rowIndex === item.rowIndex && colDef.field === item.colId
           );
@@ -264,14 +256,10 @@ function App() {
         sortable: false,
         cellRenderer: (props) => {
           const { node, colDef } = props;
-          const isSameRow = clickedCells.find(
+          const isSameRow = currentEntry.clicked_cells.find(
             (item) => item.rowIndex === node.rowIndex
           );
-          const isSameCol = clickedCells.find(
-            (item) =>
-              item.colId === colDef.field && node.rowIndex !== item.rowindex
-          );
-          const isCurrentCell = clickedCells.find(
+          const isCurrentCell = currentEntry.clicked_cells.find(
             (item) =>
               node.rowIndex === item.rowIndex && colDef.field === item.colId
           );
@@ -307,14 +295,10 @@ function App() {
         },
         cellRenderer: (props) => {
           const { node, colDef } = props;
-          const isSameRow = clickedCells.find(
+          const isSameRow = currentEntry.clicked_cells.find(
             (item) => item.rowIndex === node.rowIndex
           );
-          const isSameCol = clickedCells.find(
-            (item) =>
-              item.colId === colDef.field && node.rowIndex !== item.rowindex
-          );
-          const isCurrentCell = clickedCells.find(
+          const isCurrentCell = currentEntry.clicked_cells.find(
             (item) =>
               node.rowIndex === item.rowIndex && colDef.field === item.colId
           );
@@ -345,14 +329,10 @@ function App() {
         },
         cellRenderer: (props) => {
           const { node, colDef } = props;
-          const isSameRow = clickedCells.find(
+          const isSameRow = currentEntry.clicked_cells.find(
             (item) => item.rowIndex === node.rowIndex
           );
-          const isSameCol = clickedCells.find(
-            (item) =>
-              item.colId === colDef.field && node.rowIndex !== item.rowindex
-          );
-          const isCurrentCell = clickedCells.find(
+          const isCurrentCell = currentEntry.clicked_cells.find(
             (item) =>
               node.rowIndex === item.rowIndex && colDef.field === item.colId
           );
@@ -375,7 +355,7 @@ function App() {
       },
       ...weekCols,
     ];
-  }, [showOptions, currentWeek, currentEntry, isMobile, clickedCells]);
+  }, [showOptions, currentWeek, currentEntry, isMobile]);
 
   const fetchTeamMemberList = async () => {
     try {
@@ -454,10 +434,10 @@ function App() {
           return a.value - b.value;
         });
       setFullWeeks(customWeeks);
+      setCurrentWeek(customWeeks[0]);
 
       let customRows = [];
       transformedData.forEach((team) => {
-        console.log(team);
         let row = {};
         row.name = team.name;
         row.ev = team.ev;
@@ -485,12 +465,15 @@ function App() {
 
           if (game.AwayTeam !== "BYE") {
             const homeTeamInfo = teamMembers.find((t) => t.TeamID === team.id);
-            const awayTeamInfo = teamMembers.find(
+            let awayTeamInfo = teamMembers.find(
               (t) => t.TeamID === game.GlobalAwayTeamID
             );
-            if (game.AwayTeam === 'BAL') {
-              console.log('asdfasdfasdfasdf', homeTeamInfo, awayTeamInfo);
+            if (team.id !== game.GlobalHomeTeamID) {
+              awayTeamInfo = teamMembers.find(
+                (t) => t.TeamID === game.GlobalHomeTeamID
+              );
             }
+
             if (homeTeamInfo && awayTeamInfo) {
               if (
                 homeTeamInfo.Division === awayTeamInfo.Division &&
@@ -513,12 +496,6 @@ function App() {
   const handleChangeWeek = (value, option) => {
     setIsDirty(true);
     setCurrentWeek(option);
-    // setCurrentEntry({
-    //   ...currentEntry,
-    //   team1: "",
-    //   team2: "",
-    //   week: value,
-    // });
   };
 
   const handleToggle = (checked, type) => {
@@ -536,7 +513,6 @@ function App() {
     try {
       const payload = {
         ...currentEntry,
-        clicked_cells: clickedCells,
         week: currentWeek.value,
         user: loggedUser,
       };
@@ -560,10 +536,44 @@ function App() {
             description: "Your new entry has been saved successfully.",
             placement: "bottomRight",
           });
+          handleLoadEntry();
         }
       }
     } catch (e) {
       console.log(e);
+      api.error({
+        message: "Failed!",
+        description: e.response.data.error,
+        placement: "bottomRight",
+      });
+    }
+  };
+
+  const handleCreateEntry = async () => {
+    try {
+      const payload = {
+        ...currentEntry,
+        week: currentWeek.value,
+        user: loggedUser,
+      };
+
+      const { data } = await API.post("/entry", payload);
+      if (data.success) {
+        setSaved(true);
+        api.success({
+          message: "Entry Created",
+          description: "Your new entry has been saved successfully.",
+          placement: "bottomRight",
+        });
+        handleLoadEntry();
+      }
+    } catch (e) {
+      console.log(e);
+      api.error({
+        message: "Failed!",
+        description: e.response.data.error,
+        placement: "bottomRight",
+      });
     }
   };
 
@@ -584,7 +594,7 @@ function App() {
         setLoadedEntries(data);
 
         if (data.length > 0) {
-          handleChangeCurrentEntry(data[0]);
+          handleChangeCurrentEntry(null, data[0]);
           api.success({
             message: "Entries Loaded",
             description: "All saved entries have been loaded successfully.",
@@ -618,7 +628,7 @@ function App() {
       name: "",
       doublePicksStart: 0,
       clicked_cells: [],
-      teams_used: null,
+      teams_used: [],
       hide_on_grid: false,
       week: 1,
     });
@@ -632,7 +642,7 @@ function App() {
     });
   };
 
-  const handleChangeCurrentEntry = (option) => {
+  const handleChangeCurrentEntry = (value, option) => {
     setCurrentEntry(option);
   };
 
@@ -654,7 +664,7 @@ function App() {
 
   const isDisabled = (params) => {
     if (
-      clickedCells.find(
+      currentEntry.clicked_cells.find(
         (item) =>
           params.rowIndex === item.rowIndex &&
           params.colDef.field === item.colId
@@ -669,14 +679,16 @@ function App() {
         currentEntry.doublePicksStart
     ) {
       if (
-        clickedCells.find((item) => item.rowIndex === params.rowIndex) ||
+        currentEntry.clicked_cells.find(
+          (item) => item.rowIndex === params.rowIndex
+        ) ||
         currentEntry.teams_used.includes(params.data.name)
       ) {
         return true;
       }
 
       if (
-        clickedCells.find(
+        currentEntry.clicked_cells.find(
           (item) =>
             item.colId === params.colDef.field &&
             params.rowIndex !== item.rowindex
@@ -686,9 +698,12 @@ function App() {
       }
     } else {
       if (
-        clickedCells.find((item) => item.rowIndex === params.rowIndex) ||
-        currentEntry.teams_used.includes(params.data.name) ||
-        clickedCells.find(
+        currentEntry.clicked_cells.find(
+          (item) => item.rowIndex === params.rowIndex
+        ) ||
+        (currentEntry.teams_used.length > 0 &&
+          currentEntry.teams_used.includes(params.data.name)) ||
+        currentEntry.clicked_cells.find(
           (item) =>
             item.colId === params.colDef.field &&
             params.rowIndex !== item.rowindex
@@ -702,7 +717,6 @@ function App() {
   };
 
   const handleCellClick = (event) => {
-    setIsDirty(true);
     const cellData = {
       colId: event.colDef.field,
       rowIndex: event.rowIndex,
@@ -711,9 +725,14 @@ function App() {
     };
 
     if (cellData.colId === "name") {
-      if (clickedCells.find((item) => item.team === cellData.team)) {
+      if (
+        currentEntry.clicked_cells.find((item) => item.team === cellData.team)
+      ) {
         return;
       }
+
+      setIsDirty(true);
+
       let customTeamsUsed = [...currentEntry.teams_used];
       if (customTeamsUsed.includes(cellData.team)) {
         customTeamsUsed = customTeamsUsed.filter(
@@ -730,53 +749,70 @@ function App() {
     if (!cellData.colId.includes("week")) return;
 
     if (currentEntry.doublePicksStart === 0) {
-      if (!clickedCells.find((item) => item.colId === cellData.colId)) {
-        const customClickedCells = [...clickedCells];
-        customClickedCells.push(cellData);
-        setClickedCells(customClickedCells);
+      if (
+        !currentEntry.clicked_cells.find(
+          (item) => item.colId === cellData.colId
+        )
+      ) {
+        const customclicked_cells = [...currentEntry.clicked_cells];
+        customclicked_cells.push(cellData);
+        setCurrentEntry({
+          ...currentEntry,
+          clicked_cells: customclicked_cells,
+        });
       } else {
-        const customClickedCells = [...clickedCells].filter(
+        const customclicked_cells = [...currentEntry.clicked_cells].filter(
           (item) => item.colId !== event.colDef.field
         );
-        setClickedCells(customClickedCells);
+        setCurrentEntry({
+          ...currentEntry,
+          clicked_cells: customclicked_cells,
+        });
       }
       return;
     }
     if (currentEntry.doublePicksStart > 0) {
       if (cellData.week >= currentEntry.doublePicksStart) {
         if (
-          !clickedCells.find(
+          !currentEntry.clicked_cells.find(
             (item) =>
               item.colId === cellData.colId &&
               item.rowIndex === cellData.rowIndex
           )
         ) {
           if (
-            clickedCells.filter((item) => item.colId === cellData.colId)
-              .length < 2
+            currentEntry.clicked_cells.filter(
+              (item) => item.colId === cellData.colId
+            ).length < 2
           ) {
-            const customClickedCells = [...clickedCells];
-            customClickedCells.push(cellData);
-            setClickedCells(customClickedCells);
+            const customclicked_cells = [...currentEntry.clicked_cells];
+            customclicked_cells.push(cellData);
+            setCurrentEntry({
+              ...currentEntry,
+              clicked_cells: customclicked_cells,
+            });
             return;
           }
         }
 
         if (
-          clickedCells.find(
+          currentEntry.clicked_cells.find(
             (item) =>
               item.colId === cellData.colId &&
               item.rowIndex === cellData.rowIndex
           )
         ) {
-          const customClickedCells = [...clickedCells].filter(
+          const customclicked_cells = [...currentEntry.clicked_cells].filter(
             (item) =>
               !(
                 item.colId === cellData.colId &&
                 item.rowIndex === cellData.rowIndex
               )
           );
-          setClickedCells(customClickedCells);
+          setCurrentEntry({
+            ...currentEntry,
+            clicked_cells: customclicked_cells,
+          });
         }
       }
     }
@@ -839,14 +875,12 @@ function App() {
     setShowAllSettings(!showAllSettings);
   };
 
-  console.log("-------------", clickedCells, filteredData, currentEntry);
-
   return (
     <AppWrapper>
       {contextHolder}
       {modalContextHolder}
       <TopWrapper>
-        <AppTitle>NFL Survivor Grid - {currentWeek.label}</AppTitle>
+        <AppTitle>NFL Survivor Grid - {currentWeek?.label || ""}</AppTitle>
         <Links>
           <a
             href="https://www.rotoballer.com/nfl-survivor-pool-strategy-expert-tips-for-survivor-leagues/1519975"
@@ -905,6 +939,13 @@ function App() {
               disabled={!currentEntry.name || !loggedUser.logged_in || !isDirty}
             >
               Save
+            </Button>
+            <Button
+              type="primary"
+              onClick={handleCreateEntry}
+              disabled={!currentEntry.name || !loggedUser.logged_in || !isDirty}
+            >
+              Save As
             </Button>
 
             {/* <Button
@@ -975,7 +1016,7 @@ function App() {
                 value: "name",
               }}
               mode="multiple"
-              disabled={currentWeek.value === 1 || !loggedUser.logged_in}
+              disabled={currentWeek?.value === 1 || !loggedUser.logged_in}
               allowClear
               style={{ width: "100%" }}
             />
@@ -987,9 +1028,9 @@ function App() {
         <Select
           prefix={<img src={Calendar} width="15px" height="16px" alt="" />}
           options={fullWeeks}
-          value={currentWeek.value}
+          value={currentWeek ? currentWeek.value : undefined}
           onChange={handleChangeWeek}
-          style={{ width: "170px", height: "44px", margin: "10px 0px" }}
+          style={{ width: "170px", height: "48px", margin: "10px 0px" }}
         />
         {isMobile ? (
           <div className="all-button" onClick={() => handleShowAllSettings()}>
@@ -1036,6 +1077,45 @@ function App() {
           </FilterButtons>
         )}
       </FilterWrapper>
+      {showAllSettings && (
+        <div className="mobile-filter-panel">
+          <ToolOutline>
+            <Switch
+              checked={showOptions.away}
+              onChange={(checked) => handleToggle(checked, "away")}
+            />
+            <ToolText>Away Games</ToolText>
+          </ToolOutline>
+          <ToolOutline>
+            <Switch
+              checked={showOptions.divisional}
+              onChange={(checked) => handleToggle(checked, "divisional")}
+            />
+            <ToolText>Divisional Games</ToolText>
+          </ToolOutline>
+          <ToolOutline>
+            <Switch
+              checked={showOptions.thursday}
+              onChange={(checked) => handleToggle(checked, "thursday")}
+            />
+            <ToolText>Thursday Games</ToolText>
+          </ToolOutline>
+          <ToolOutline>
+            <Switch
+              checked={showOptions.monday}
+              onChange={(checked) => handleToggle(checked, "monday")}
+            />
+            <ToolText>Monday Games</ToolText>
+          </ToolOutline>
+          <ToolOutline>
+            <Switch
+              checked={showOptions.spreads}
+              onChange={(checked) => handleToggle(checked, "spreads")}
+            />
+            <ToolText>Spreads</ToolText>
+          </ToolOutline>
+        </div>
+      )}
       <GridWrapper>
         <AgGridReact
           rowData={filteredData}
@@ -1052,56 +1132,6 @@ function App() {
           }}
         />
       </GridWrapper>
-      {showAllSettings && (
-        <FilterModal>
-          <div className="top-section">
-            <div
-              className="go-back-btn"
-              onClick={() => handleShowAllSettings()}
-            >
-              <img src={LeftIcon} width="20px" height="20px" alt="" />
-            </div>
-            <div className="top-section-text">All Settings</div>
-          </div>
-          <div className="all-settings-content">
-            <div className="mobile-setting-wrapper">
-              <ToolText>Away Games</ToolText>
-              <Switch
-                checked={showOptions.away}
-                onChange={(checked) => handleToggle(checked, "away")}
-              />
-            </div>
-            <div className="mobile-setting-wrapper">
-              <ToolText>Divisional Games</ToolText>
-              <Switch
-                checked={showOptions.divisional}
-                onChange={(checked) => handleToggle(checked, "divisional")}
-              />
-            </div>
-            <div className="mobile-setting-wrapper">
-              <ToolText>Thursday Games</ToolText>
-              <Switch
-                checked={showOptions.thursday}
-                onChange={(checked) => handleToggle(checked, "thursday")}
-              />
-            </div>
-            <div className="mobile-setting-wrapper">
-              <ToolText>Monday Games</ToolText>
-              <Switch
-                checked={showOptions.monday}
-                onChange={(checked) => handleToggle(checked, "monday")}
-              />
-            </div>
-            <div className="mobile-setting-wrapper">
-              <ToolText>Spreads</ToolText>
-              <Switch
-                checked={showOptions.spreads}
-                onChange={(checked) => handleToggle(checked, "spreads")}
-              />
-            </div>
-          </div>
-        </FilterModal>
-      )}
     </AppWrapper>
   );
 }
