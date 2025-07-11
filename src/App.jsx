@@ -52,14 +52,8 @@ function App() {
     week: 1,
   });
   const [pickData, setPickData] = useState(null);
-  const [loggedUser, setLoggedUser] = useState({
-    logged_in: true,
-    user: {
-      id: 132865,
-      name: "George Coder",
-      email: "GeorgeMCoder57@gmail.com",
-    },
-  });
+  const [winData, setWinData] = useState(null);
+  const [loggedUser, setLoggedUser] = useState();
   const [currentWeek, setCurrentWeek] = useState();
   const [fullWeeks, setFullWeeks] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -84,7 +78,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (loggedUser.logged_in) {
+    if (loggedUser?.logged_in === true) {
       handleLoadEntry();
     }
   }, [loggedUser]);
@@ -177,6 +171,22 @@ function App() {
       return "cell-selected";
     }
 
+    if (
+      currentEntry.doublePicksStart > 0 &&
+      parseInt(params.colDef.field.replace(/\D/g, ""), 10) >=
+        currentEntry.doublePicksStart
+    ) {
+      if (
+        currentEntry.clicked_cells.find(
+          (item) =>
+            item.colId === params.colDef.field &&
+            params.rowIndex !== item.rowindex
+        )
+      ) {
+        return "fake-disabled";
+      }
+    }
+
     return "";
   };
 
@@ -254,6 +264,9 @@ function App() {
         headerName: "Team",
         width: 80,
         sortable: false,
+        cellClassRules: {
+          "first-col-highlight": (params) => params.node.isSelected(),
+        },
         cellRenderer: (props) => {
           const { node, colDef } = props;
           const isSameRow = currentEntry.clicked_cells.find(
@@ -289,9 +302,14 @@ function App() {
       {
         field: "win_probability",
         headerName: "W%",
-        sortable: false,
+        headerTooltip:
+          "RotoBaller's Projected win probability for a given game. Win probability provided for current week and next week.",
         cellClassRules: {
           "cell-disabled": (params) => isDisabled(params),
+        },
+        sortable: true,
+        comparator: (valueA, valueB) => {
+          return valueA - valueB;
         },
         cellRenderer: (props) => {
           const { node, colDef } = props;
@@ -323,7 +341,12 @@ function App() {
       {
         field: "p_percent",
         headerName: "P%",
-        sortable: false,
+        headerTooltip:
+          "Percentage that each team is picked in a given week, based on all RotoBaller Survivor Tool users. Resets Thursday morning.",
+        sortable: true,
+        comparator: (valueA, valueB) => {
+          return valueA - valueB;
+        },
         cellClassRules: {
           "cell-disabled": (params) => isDisabled(params),
         },
@@ -516,18 +539,12 @@ function App() {
         week: currentWeek.value,
         user: loggedUser,
       };
-      if (loadedEntries.find((item) => item.id === currentEntry.id)) {
-        const { data } = await API.put(`/entry/${currentEntry.id}`, payload);
-        if (data.success) {
-          setSaved(true);
-          api.success({
-            message: "Entry Updated",
-            description: "Your current entry has been updated successfully.",
-            placement: "bottomRight",
-          });
-          handleLoadEntry();
-        }
-      } else {
+      if (
+        (loadedEntries.find((item) => item.id === currentEntry.id) &&
+          loadedEntries.find((item) => item.id === currentEntry.id).name !==
+            currentEntry.name) ||
+        !currentEntry.id
+      ) {
         const { data } = await API.post("/entry", payload);
         if (data.success) {
           setSaved(true);
@@ -538,34 +555,17 @@ function App() {
           });
           handleLoadEntry();
         }
-      }
-    } catch (e) {
-      console.log(e);
-      api.error({
-        message: "Failed!",
-        description: e.response.data.error,
-        placement: "bottomRight",
-      });
-    }
-  };
-
-  const handleCreateEntry = async () => {
-    try {
-      const payload = {
-        ...currentEntry,
-        week: currentWeek.value,
-        user: loggedUser,
-      };
-
-      const { data } = await API.post("/entry", payload);
-      if (data.success) {
-        setSaved(true);
-        api.success({
-          message: "Entry Created",
-          description: "Your new entry has been saved successfully.",
-          placement: "bottomRight",
-        });
-        handleLoadEntry();
+      } else {
+        const { data } = await API.put(`/entry/${currentEntry.id}`, payload);
+        if (data.success) {
+          setSaved(true);
+          api.success({
+            message: "Entry Updated",
+            description: "Your current entry has been updated successfully.",
+            placement: "bottomRight",
+          });
+          handleLoadEntry();
+        }
       }
     } catch (e) {
       console.log(e);
@@ -595,11 +595,11 @@ function App() {
 
         if (data.length > 0) {
           handleChangeCurrentEntry(null, data[0]);
-          api.success({
-            message: "Entries Loaded",
-            description: "All saved entries have been loaded successfully.",
-            placement: "bottomRight",
-          });
+          // api.success({
+          //   message: "Entries Loaded",
+          //   description: "All saved entries have been loaded successfully.",
+          //   placement: "bottomRight",
+          // });
         }
         setIsDirty(false);
       } catch (e) {
@@ -631,6 +631,7 @@ function App() {
       teams_used: [],
       hide_on_grid: false,
       week: 1,
+      id: "",
     });
   };
 
@@ -671,6 +672,9 @@ function App() {
       )
     ) {
       return false;
+    }
+    if (params.value?.name === "BYE") {
+      return true;
     }
 
     if (
@@ -724,6 +728,10 @@ function App() {
       week: parseInt(event.colDef.field.replace(/\D/g, ""), 10),
     };
 
+    if (event.value.name === "BYE") {
+      return;
+    }
+
     if (cellData.colId === "name") {
       if (
         currentEntry.clicked_cells.find((item) => item.team === cellData.team)
@@ -747,6 +755,8 @@ function App() {
       });
     }
     if (!cellData.colId.includes("week")) return;
+
+    setIsDirty(true);
 
     if (currentEntry.doublePicksStart === 0) {
       if (
@@ -772,49 +782,47 @@ function App() {
       return;
     }
     if (currentEntry.doublePicksStart > 0) {
-      if (cellData.week >= currentEntry.doublePicksStart) {
+      // if (cellData.week >= currentEntry.doublePicksStart) {
+      if (
+        !currentEntry.clicked_cells.find(
+          (item) =>
+            item.colId === cellData.colId && item.rowIndex === cellData.rowIndex
+        )
+      ) {
         if (
-          !currentEntry.clicked_cells.find(
-            (item) =>
-              item.colId === cellData.colId &&
-              item.rowIndex === cellData.rowIndex
-          )
+          currentEntry.clicked_cells.filter(
+            (item) => item.colId === cellData.colId
+          ).length < 2
         ) {
-          if (
-            currentEntry.clicked_cells.filter(
-              (item) => item.colId === cellData.colId
-            ).length < 2
-          ) {
-            const customclicked_cells = [...currentEntry.clicked_cells];
-            customclicked_cells.push(cellData);
-            setCurrentEntry({
-              ...currentEntry,
-              clicked_cells: customclicked_cells,
-            });
-            return;
-          }
-        }
-
-        if (
-          currentEntry.clicked_cells.find(
-            (item) =>
-              item.colId === cellData.colId &&
-              item.rowIndex === cellData.rowIndex
-          )
-        ) {
-          const customclicked_cells = [...currentEntry.clicked_cells].filter(
-            (item) =>
-              !(
-                item.colId === cellData.colId &&
-                item.rowIndex === cellData.rowIndex
-              )
-          );
+          const customclicked_cells = [...currentEntry.clicked_cells];
+          customclicked_cells.push(cellData);
           setCurrentEntry({
             ...currentEntry,
             clicked_cells: customclicked_cells,
           });
+          return;
         }
       }
+
+      if (
+        currentEntry.clicked_cells.find(
+          (item) =>
+            item.colId === cellData.colId && item.rowIndex === cellData.rowIndex
+        )
+      ) {
+        const customclicked_cells = [...currentEntry.clicked_cells].filter(
+          (item) =>
+            !(
+              item.colId === cellData.colId &&
+              item.rowIndex === cellData.rowIndex
+            )
+        );
+        setCurrentEntry({
+          ...currentEntry,
+          clicked_cells: customclicked_cells,
+        });
+      }
+      // }
     }
   };
 
@@ -846,6 +854,23 @@ function App() {
       });
     }
 
+    if (winData && winData.results.length > 0) {
+      customData = customData.map((item) => {
+        const targetWinItem = winData.results.find(
+          (winItem) => winItem.abbreviation === item.name
+        );
+
+        if (targetWinItem) {
+          return {
+            ...item,
+            win_probability: targetWinItem.winProbability || 0,
+          };
+        }
+
+        return item;
+      });
+    }
+
     if (currentEntry.hide_on_grid) {
       return customData.filter(
         (item) => !currentEntry.teams_used.includes(item.name)
@@ -853,11 +878,26 @@ function App() {
     }
 
     return customData;
-  }, [currentEntry.hide_on_grid, rowData, currentEntry.teams_used, pickData]);
+  }, [
+    currentEntry.hide_on_grid,
+    rowData,
+    currentEntry.teams_used,
+    pickData,
+    winData,
+  ]);
 
   useEffect(() => {
-    fetchPickPercentages();
+    if (currentWeek && currentWeek.value) {
+      fetchPickPercentages();
+      fetchWinProbability();
+    }
   }, [currentWeek]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      fetchWinProbability();
+    }, 3600000);
+  }, []);
 
   const fetchPickPercentages = async () => {
     try {
@@ -865,6 +905,15 @@ function App() {
         `/entry/calculate-pick/${currentWeek.value}`
       );
       setPickData(data);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const fetchWinProbability = async () => {
+    try {
+      const { data } = await API.get(`/win-probability/${currentWeek.value}`);
+      setWinData(data);
       console.log("------------", data);
     } catch (e) {
       console.log(e);
@@ -874,6 +923,8 @@ function App() {
   const handleShowAllSettings = () => {
     setShowAllSettings(!showAllSettings);
   };
+
+  console.log(filteredData);
 
   return (
     <AppWrapper>
@@ -898,12 +949,26 @@ function App() {
             href="https://www.rotoballer.com/nfl-survivor-pool-strategy-expert-tips-for-survivor-leagues/1519975"
             target="_blank"
           >
-            Knockout Data
+            Elimination Data
           </a>
         </Links>
       </TopWrapper>
       <Card
         title={
+          <EntryButtons>
+            <div style={{ marginBottom: "10px" }}>
+              <div className="entry-name">Create an Entry</div>
+              <Input
+                value={currentEntry.name}
+                onChange={handleChangeEntryName}
+                style={{ width: "170px" }}
+              />
+            </div>
+          </EntryButtons>
+        }
+        style={{ width: "100%" }}
+      >
+        <PanelWrapper>
           <EntryTitle>
             <div className="entry-title">Your Saved Entries</div>
             <Select
@@ -917,43 +982,23 @@ function App() {
               }}
             />
           </EntryTitle>
-        }
-        extra={"(click games on the grid to highlight)"}
-        style={{ width: "100%" }}
-      >
-        <PanelWrapper>
-          <EntryButtons>
-            <div>
-              <div className="entry-name">Entry Name</div>
-              <Input
-                value={currentEntry.name}
-                onChange={handleChangeEntryName}
-                style={{ width: "170px" }}
-              />
-            </div>
-          </EntryButtons>
+
           <EntryButtons>
             <Button
               type="primary"
               onClick={handleSaveEntry}
-              disabled={!currentEntry.name || !loggedUser.logged_in || !isDirty}
+              disabled={
+                !currentEntry.name || !loggedUser?.logged_in || !isDirty
+              }
             >
               Save
             </Button>
-            <Button
+            {/* <Button
               type="primary"
               onClick={handleCreateEntry}
               disabled={!currentEntry.name || !loggedUser.logged_in || !isDirty}
             >
               Save As
-            </Button>
-
-            {/* <Button
-              type="primary"
-              onClick={handleLoadEntry}
-              disabled={!loggedUser.logged_in}
-            >
-              Load
             </Button> */}
             <Popconfirm
               title="Delete the entry"
@@ -964,13 +1009,16 @@ function App() {
             >
               <Button
                 danger
-                disabled={!currentEntry.name || !loggedUser.logged_in}
+                disabled={!currentEntry.name || !loggedUser?.logged_in}
               >
                 Delete
               </Button>
             </Popconfirm>
 
-            <Button onClick={handleClearEntry} disabled={!loggedUser.logged_in}>
+            <Button
+              onClick={handleClearEntry}
+              disabled={!loggedUser?.logged_in}
+            >
               Clear
             </Button>
           </EntryButtons>
@@ -989,7 +1037,7 @@ function App() {
               value={currentEntry.doublePicksStart}
               onChange={handleChangeDoublePicks}
               style={{ width: "170px" }}
-              disabled={!loggedUser.logged_in}
+              disabled={!loggedUser?.logged_in}
             />
           </div>
           <div style={{ width: "100%" }}>
@@ -1000,7 +1048,7 @@ function App() {
                 <Checkbox
                   checked={currentEntry.hide_on_grid}
                   onChange={handleChangeHideOnGrid}
-                  disabled={!loggedUser.logged_in}
+                  disabled={!loggedUser?.logged_in}
                 >
                   Hide on grid
                 </Checkbox>
@@ -1016,7 +1064,7 @@ function App() {
                 value: "name",
               }}
               mode="multiple"
-              disabled={currentWeek?.value === 1 || !loggedUser.logged_in}
+              disabled={!loggedUser?.logged_in}
               allowClear
               style={{ width: "100%" }}
             />
@@ -1030,52 +1078,49 @@ function App() {
           options={fullWeeks}
           value={currentWeek ? currentWeek.value : undefined}
           onChange={handleChangeWeek}
-          style={{ width: "170px", height: "48px", margin: "10px 0px" }}
+          style={{ width: "170px", height: "48px" }}
         />
-        {isMobile ? (
-          <div className="all-button" onClick={() => handleShowAllSettings()}>
-            <img src={MenuIcon} alt="" width="20px" height="20px" />
-            <div className="all-button-text">All Settings</div>
-          </div>
-        ) : (
-          <FilterButtons>
-            <ToolOutline>
-              <Switch
-                checked={showOptions.away}
-                onChange={(checked) => handleToggle(checked, "away")}
-              />
-              <ToolText>Away Games</ToolText>
-            </ToolOutline>
-            <ToolOutline>
-              <Switch
-                checked={showOptions.divisional}
-                onChange={(checked) => handleToggle(checked, "divisional")}
-              />
-              <ToolText>Divisional Games</ToolText>
-            </ToolOutline>
-            <ToolOutline>
-              <Switch
-                checked={showOptions.thursday}
-                onChange={(checked) => handleToggle(checked, "thursday")}
-              />
-              <ToolText>Thursday Games</ToolText>
-            </ToolOutline>
-            <ToolOutline>
-              <Switch
-                checked={showOptions.monday}
-                onChange={(checked) => handleToggle(checked, "monday")}
-              />
-              <ToolText>Monday Games</ToolText>
-            </ToolOutline>
-            <ToolOutline>
-              <Switch
-                checked={showOptions.spreads}
-                onChange={(checked) => handleToggle(checked, "spreads")}
-              />
-              <ToolText>Spreads</ToolText>
-            </ToolOutline>
-          </FilterButtons>
-        )}
+        <div className="all-button" onClick={() => handleShowAllSettings()}>
+          <img src={MenuIcon} alt="" width="20px" height="20px" />
+          <div className="all-button-text">All Settings</div>
+        </div>
+        <FilterButtons>
+          <ToolOutline>
+            <Switch
+              checked={showOptions.away}
+              onChange={(checked) => handleToggle(checked, "away")}
+            />
+            <ToolText>Away Games</ToolText>
+          </ToolOutline>
+          <ToolOutline>
+            <Switch
+              checked={showOptions.divisional}
+              onChange={(checked) => handleToggle(checked, "divisional")}
+            />
+            <ToolText>Divisional Games</ToolText>
+          </ToolOutline>
+          <ToolOutline>
+            <Switch
+              checked={showOptions.thursday}
+              onChange={(checked) => handleToggle(checked, "thursday")}
+            />
+            <ToolText>Thursday Games</ToolText>
+          </ToolOutline>
+          <ToolOutline>
+            <Switch
+              checked={showOptions.monday}
+              onChange={(checked) => handleToggle(checked, "monday")}
+            />
+            <ToolText>Monday Games</ToolText>
+          </ToolOutline>
+          <ToolOutline>
+            <Switch
+              checked={showOptions.spreads}
+              onChange={(checked) => handleToggle(checked, "spreads")}
+            />
+            <ToolText>Spreads</ToolText>
+          </ToolOutline>
+        </FilterButtons>
       </FilterWrapper>
       {showAllSettings && (
         <div className="mobile-filter-panel">
@@ -1125,6 +1170,8 @@ function App() {
           headerHeight={41}
           onCellClicked={handleCellClick}
           onGridReady={onGridReady}
+          tooltipShowDelay={0} // ← show immediately
+          enableBrowserTooltips={false}
           defaultColDef={{
             sortable: true,
             sortingOrder: ["asc", "desc"], // disables 3rd state

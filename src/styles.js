@@ -3,6 +3,7 @@ import styled from "styled-components";
 export const AppWrapper = styled.div`
   border: none !important;
   position: relative;
+  background: white;
 
   .mobile-filter-panel {
     display: flex;
@@ -51,12 +52,21 @@ export const FilterWrapper = styled.div`
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
+  margin-bottom: 10px;
+
+  @media screen and (max-width: 1160px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
   @media screen and (max-width: 780px) {
-    justify-content: center;
+    justify-content: space-between;
+    flex-direction: row;
+    margin: 8px 0px !important;
   }
 
   .ant-select-selection-item {
+    font-size: 16px;
     @media screen and (max-width: 480px) {
       font-size: 16px !important;
       line-height: 100% !important;
@@ -64,15 +74,21 @@ export const FilterWrapper = styled.div`
   }
 
   .all-button {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
     position: relative;
     height: 44px;
     width: 176px;
     background: white;
     border: 1px solid #d9d9d9;
     border-radius: 32px;
+    margin: 0px;
+
+    @media screen and (max-width: 780px) {
+      display: flex;
+    }
 
     .all-button-text {
       font-weight: 500;
@@ -113,6 +129,8 @@ export const TopWrapper = styled.div`
   justify-content: space-between;
   padding: 0 10px;
   flex-wrap: wrap;
+  background: white;
+  margin-bottom: 5px !important;
 `;
 
 export const Links = styled.div`
@@ -150,6 +168,10 @@ export const ToolOutline = styled.div`
   justify-content: flex-start;
   gap: 16px;
 
+  @media screen and (max-width: 870px) {
+    width: 45%;
+  }
+
   @media screen and (max-width: 780px) {
     width: 85%;
   }
@@ -165,6 +187,10 @@ export const ToolText = styled.div`
     font-size: 16px !important;
     line-height: 100% !important;
   }
+
+  @media screen and (max-width: 1100px) {
+    font-size: 14px;
+  }
 `;
 
 export const AppTitle = styled.div`
@@ -174,7 +200,7 @@ export const AppTitle = styled.div`
   flex-wrap: wrap;
 
   @media screen and (max-width: 780px) {
-    font-size: 30px !important;
+    font-size: 25px !important;
     margin-bottom: 15px !important;
   }
 `;
@@ -185,6 +211,14 @@ export const GridWrapper = styled.div`
   overflow-x: auto;
   overflow-y: hidden;
   margin: 0 !important;
+
+  .ag-row-hover {
+    background-color: transparent !important;
+  }
+
+  .ag-row-hover .ag-column-first .team-name {
+    background: #3fa2ec;
+  }
 
   .ag-root-wrapper-body {
     margin: 0 !important;
@@ -222,6 +256,7 @@ export const GridWrapper = styled.div`
   .win-percent,
   .pick-percent {
     position: relative;
+    background: white;
 
     @media screen and (max-width: 480px) {
       font-size: 14px !important;
@@ -241,8 +276,16 @@ export const GridWrapper = styled.div`
 
   .cell-disabled {
     pointer-events: none;
-    opacity: 0.4;
+    background: white;
     cursor: not-allowed;
+
+    .name-value {
+      opacity: 0.4;
+    }
+  }
+
+  .fake-disabled {
+    opacity: 0.4;
   }
 
   .ag-theme-params-1,
@@ -411,6 +454,19 @@ export const FilterButtons = styled.div`
   justify-content: flex-start;
   gap: 10px;
   flex: 1;
+
+  @media screen and (max-width: 870px) {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  @media screen and (max-width: 1160px) {
+    margin-bottom: 10px;
+  }
+
+  @media screen and (max-width: 780px) {
+    display: none;
+  }
 `;
 
 export const EntryTitle = styled.div`
