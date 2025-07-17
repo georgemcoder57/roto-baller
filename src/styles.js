@@ -5,6 +5,55 @@ export const AppWrapper = styled.div`
   position: relative;
   background: white;
 
+  .ant-table-cell {
+    background: white !important;
+    border-color: #f0f0f0 !important;
+    border-right: none !important;
+  }
+
+  .chart-wrapper.line {
+    height: 264px;
+  }
+
+  .chart-wrapper.bar {
+    height: 180px;
+  }
+
+  .tables {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 10px;
+
+    @media screen and (max-width: 780px) {
+      flex-direction: column;
+    }
+
+    .table-panel {
+      width: 45%;
+
+      @media screen and (max-width: 780px) {
+        width: 100%;
+      }
+
+      .table-wrapper {
+        width: 100%;
+      }
+
+      .table-header {
+        width: 100%;
+        text-align: center;
+        font-size: 24px;
+        margin-bottom: 8px;
+      }
+
+      .bold-team-name {
+        font-weight: bold;
+      }
+    }
+  }
+
   .mobile-filter-panel {
     display: flex;
     align-items: center;
@@ -130,7 +179,15 @@ export const TopWrapper = styled.div`
   padding: 0 10px;
   flex-wrap: wrap;
   background: white;
-  margin-bottom: 5px !important;
+  margin-bottom: 30px !important;
+
+  @media screen and (max-width: 780px) {
+    margin-bottom: 15px !important;
+  }
+
+  .ant-select-prefix {
+    height: 16px;
+  }
 `;
 
 export const Links = styled.div`
@@ -206,11 +263,13 @@ export const AppTitle = styled.div`
 `;
 
 export const GridWrapper = styled.div`
-  height: 1365px;
-  width: 100%;
+  height: 1356px;
+  border: 1px solid #ededed;
+  border-radius: 8px;
+  width: ${(props) => (props.simple ? "370px" : "100%")};
   overflow-x: auto;
   overflow-y: hidden;
-  margin: 0 !important;
+  margin: ${(props) => (props.simple ? "auto !important" : "0 !important")};
 
   .ag-row-hover {
     background-color: transparent !important;
@@ -239,18 +298,18 @@ export const GridWrapper = styled.div`
   }
   .red-bar-horizontal {
     width: 100%;
-    height: 1px;
-    background: red;
+    height: 5px;
+    background: #30c5ffcc;
     position: absolute;
-    top: 50%;
+    top: calc(50% - 2.5px);
   }
 
   .red-bar {
-    width: 1px;
+    width: 5px;
     height: 100%;
-    background-color: red;
+    background-color: #30c5ffcc;
     position: absolute;
-    left: 50%;
+    left: calc(50% - 2.5px);
   }
 
   .win-percent,
@@ -270,18 +329,23 @@ export const GridWrapper = styled.div`
 
   .ag-cell.cell-selected {
     font-weight: bold;
-    border: 1px solid red;
+    border: 5px solid #30c5ffcc !important;
     box-sizing: border-box;
+
+    .name-value {
+      line-height: 30px;
+
+      @media screen and (max-width: 480px) {
+        font-size: 14px !important;
+        line-height: 27px !important;
+      }
+    }
   }
 
   .cell-disabled {
     pointer-events: none;
     background: white;
     cursor: not-allowed;
-
-    .name-value {
-      opacity: 0.4;
-    }
   }
 
   .fake-disabled {
@@ -299,6 +363,11 @@ export const GridWrapper = styled.div`
 
   .ag-cell {
     border: 1px solid #ededed;
+    box-sizing: border-box;
+  }
+
+  .ag-cell-focus:not(.ag-cell-range-selected):focus-within {
+    border: 1px solid transparent;
   }
 
   .ag-header-cell {
@@ -330,11 +399,6 @@ export const GridWrapper = styled.div`
     }
   }
 
-  .team-name.cell-selected {
-    border: 2px solid red;
-    box-sizing: border-box;
-  }
-
   .ag-column-first {
     border: none;
   }
@@ -350,6 +414,7 @@ export const GridWrapper = styled.div`
   .name-value {
     font-size: 14px;
     font-weight: 500;
+    line-height: 35px;
     color: black;
     height: 100% !important;
 
