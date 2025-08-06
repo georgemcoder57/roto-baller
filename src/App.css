@@ -4,4 +4,8 @@
   width: 100%;
   background: white;
   color: black;
+
+  * {
+    font-family: 'Lato', sans-serif;
+  }
 }

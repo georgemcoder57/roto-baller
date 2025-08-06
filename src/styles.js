@@ -4,19 +4,48 @@ export const AppWrapper = styled.div`
   border: none !important;
   position: relative;
   background: white;
+  display: flex;
+  flex-direction: column;
+
+  .entry-card {
+    width: 100%;
+    background: #f7f7f7;
+    border: 1px solid #ededed;
+    order: 4;
+
+    .ant-card-body {
+      padding: 10px 12px;
+    }
+
+    @media screen and (max-width: 1100px) {
+      margin-bottom: 10px;
+    }
+  }
+
+  .upset-table-wrapper
+    table:not(.marianExclude)
+    tbody
+    > tr:first-of-type
+    > td.ant-table-cell {
+    background: white !important;
+    border-color: #f0f0f0 !important;
+    border-right: none !important;
+    font-size: 16px !important;
+  }
 
   .ant-table-cell {
+    font-size: 16px !important;
     background: white !important;
     border-color: #f0f0f0 !important;
     border-right: none !important;
   }
 
   .chart-wrapper.line {
-    height: 264px;
+    height: 400px;
   }
 
   .chart-wrapper.bar {
-    height: 180px;
+    height: 220px;
   }
 
   .tables {
@@ -44,8 +73,9 @@ export const AppWrapper = styled.div`
       .table-header {
         width: 100%;
         text-align: center;
-        font-size: 24px;
-        margin-bottom: 8px;
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 18px;
       }
 
       .bold-team-name {
@@ -60,7 +90,14 @@ export const AppWrapper = styled.div`
     flex-direction: column;
     justify-content: flex-start;
     gap: 8px;
-    margin-bottom: 8px;
+    order: 4;
+
+    @media screen and (max-width: 1100px) {
+      order: 3;
+      width: 100%;
+      padding: 0;
+      margin-bottom: 12px;
+    }
   }
 
   .ant-card-head-wrapper {
@@ -82,40 +119,59 @@ export const AppWrapper = styled.div`
     }
   }
 
+  .entry-name,
   .double-picks-start {
-    @media screen and (max-width: 480px) {
-      margin: 10px 0px 5px 0px;
-    }
+    margin-bottom: 8px;
   }
 
-  .entry-name {
-    @media screen and (max-width: 480px) {
-      margin-bottom: 5px;
-    }
+  .entry-name,
+  .teams-used,
+  .double-picks-start {
+    font-weight: 700;
+    font-style: bold;
+    font-size: 16px;
   }
 `;
 
 export const FilterWrapper = styled.div`
   display: flex;
-  margin-top: 16px;
+  margin-top: 12px;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  order: 5;
 
-  @media screen and (max-width: 1160px) {
+  .week-select .ant-select-selector {
+    border-radius: 8px;
+  }
+
+  @media screen and (max-width: 1100px) {
+    order: 2;
     flex-direction: column;
     align-items: flex-start;
+    margin: 0px;
+    padding: 16px 0px;
+    width: 100%;
+
+    .ant-select,
+    .all-button {
+      width: 49% !important;
+    }
   }
 
   @media screen and (max-width: 780px) {
     justify-content: space-between;
     flex-direction: row;
-    margin: 8px 0px !important;
+  }
+
+  .ant-select-selector {
+    padding: 0 12px !important;
   }
 
   .ant-select-selection-item {
     font-size: 16px;
+    padding-left: 12px !important;
     @media screen and (max-width: 480px) {
       font-size: 16px !important;
       line-height: 100% !important;
@@ -132,8 +188,9 @@ export const FilterWrapper = styled.div`
     width: 176px;
     background: white;
     border: 1px solid #d9d9d9;
-    border-radius: 32px;
+    border-radius: 8px;
     margin: 0px;
+    box-sizing: border-box;
 
     @media screen and (max-width: 780px) {
       display: flex;
@@ -179,7 +236,8 @@ export const TopWrapper = styled.div`
   padding: 0 10px;
   flex-wrap: wrap;
   background: white;
-  margin-bottom: 30px !important;
+  margin-bottom: 28px !important;
+  order: 1;
 
   @media screen and (max-width: 780px) {
     margin-bottom: 15px !important;
@@ -216,21 +274,16 @@ export const Links = styled.div`
 
 export const ToolOutline = styled.div`
   width: 24%;
-  border-radius: 32px;
+  border-radius: 8px;
   border: 1px solid #dadada;
   padding: 12px 16px;
-  padding-left: 16px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 16px;
 
-  @media screen and (max-width: 870px) {
-    width: 45%;
-  }
-
-  @media screen and (max-width: 780px) {
-    width: 85%;
+  @media screen and (max-width: 1100px) {
+    width: calc(100% - 32px);
   }
 `;
 
@@ -250,15 +303,13 @@ export const ToolText = styled.div`
   }
 `;
 
-export const AppTitle = styled.div`
-  font-weight: 700;
-  font-size: 38px;
-  line-height: 100%;
+export const AppTitle = styled.h2`
   flex-wrap: wrap;
+  margin: 0 !important;
 
   @media screen and (max-width: 780px) {
     font-size: 25px !important;
-    margin-bottom: 15px !important;
+    /* margin-bottom: 15px !important; */
   }
 `;
 
@@ -269,6 +320,7 @@ export const GridWrapper = styled.div`
   width: ${(props) => (props.simple ? "370px" : "100%")};
   overflow-x: auto;
   overflow-y: hidden;
+  order: 6;
   margin: ${(props) => (props.simple ? "auto !important" : "0 !important")};
 
   .ag-row-hover {
@@ -302,6 +354,23 @@ export const GridWrapper = styled.div`
     background: #30c5ffcc;
     position: absolute;
     top: calc(50% - 2.5px);
+  }
+
+  .red-bar-underline {
+    width: 100%;
+    height: 3px;
+    background: #30c5ffcc;
+    position: absolute;
+    bottom: 0px;
+    left: 0px;
+  }
+
+  .win {
+    color: #80ff80;
+  }
+
+  .lost {
+    color: #ff8080;
   }
 
   .red-bar {
@@ -465,11 +534,11 @@ export const GridWrapper = styled.div`
   }
 
   .gray .name-value {
-    color: #b0b0b0;
+    color: #d7d6d6;
   }
 
   .gray .point-value {
-    color: #b0b0b0;
+    color: #d7d6d6;
   }
 
   .step-1 {
@@ -490,9 +559,123 @@ export const GridWrapper = styled.div`
   }
 `;
 
+export const PanelTop = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+
+  .panel-top-left {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+
+    .entry-wrapper {
+      flex: 1;
+    }
+  }
+
+  @media screen and (max-width: 1100px) {
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 20px !important;
+
+    .panel-top-left {
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+
+      .entry-wrapper {
+        width: 100%;
+
+        input {
+          font-size: 16px !important;
+        }
+      }
+    }
+
+    .panel-top-right {
+      width: 100%;
+
+      .ant-select {
+        width: 100% !important;
+      }
+    }
+  }
+`;
+
+export const PanelBottom = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+
+  .ant-select-selection-wrap {
+    height: 100%;
+  }
+
+  .teams-used {
+    width: 100%;
+
+    .ant-select-selector {
+      min-height: 43px;
+    }
+
+    .ant-select-selection-overflow {
+      display: block !important;
+    }
+  }
+
+  .panel-top-left {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+
+    .entry-wrapper {
+      flex: 1;
+    }
+  }
+
+  .double-picks-start-panel {
+    margin: 0 !important;
+  }
+
+  @media screen and (max-width: 1100px) {
+    flex-direction: column-reverse;
+    gap: 20px;
+
+    .double-picks-start-panel {
+      width: 100%;
+
+      .ant-select {
+        width: 100% !important;
+      }
+    }
+
+    .teams-used {
+      width: 100%;
+
+      .ant-select {
+        width: 100% !important;
+        height: auto !important;
+
+        .ant-select-selector {
+          height: 100%;
+          min-height: 43px;
+        }
+      }
+    }
+  }
+`;
+
 export const PanelWrapper = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 10px;
@@ -502,15 +685,49 @@ export const PanelWrapper = styled.div`
 export const TeamsUsedTitle = styled.div`
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   gap: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+
+  .show-switch {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
+  }
+
+  .show-title {
+    font-size: 14px !important;
+    font-weight: 590 !important;
+    font-style: medium;
+  }
 `;
 
 export const EntryButtons = styled.div`
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-start;
   gap: 10px;
+
+  .save-btn,
+  .clear-btn {
+    width: 200px;
+    height: 43px;
+  }
+
+  .remove-btn img {
+    padding: 0 !important;
+  }
+
+  @media screen and (max-width: 1100px) {
+    width: 100%;
+
+    .save-btn,
+    .clear-btn {
+      width: calc(50% - 24px);
+    }
+  }
 `;
 
 export const FilterButtons = styled.div`
