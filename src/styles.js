@@ -330,8 +330,21 @@ export const GridWrapper = styled.div`
   overflow-x: auto;
   overflow-y: hidden;
   order: 6;
+  position: relative;
   margin: ${(props) => (props.simple ? "auto !important" : "0 !important")};
 
+  .loading-wrapper {
+    position: absolute;
+    left: 0;
+    background: lightgray;
+    width: 100%;
+    height: 100%;
+    z-index: 1111;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 100px;
+  }
   .ag-row-hover {
     background-color: transparent !important;
   }
