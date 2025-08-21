@@ -50,17 +50,16 @@ import {
 } from "antd";
 import Calendar from "./assets/calendar.png";
 import MenuIcon from "./assets/menu.png";
+import DiceIcon from "./assets/dice.png";
 import TrashIcon from "./assets/trash.png";
 import {
   AppTitle,
   AppWrapper,
   EntryButtons,
-  EntryTitle,
   FilterButtons,
   FilterWrapper,
   GridWrapper,
   Links,
-  PanelWrapper,
   TeamsUsedTitle,
   ToolOutline,
   ToolText,
@@ -75,6 +74,7 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 function App() {
   const gridApiRef = useRef();
   const [topChartData, setTopChartData] = useState();
+  const [disableSaving, setDisableSaving] = useState(false);
   const [bottomChartData, setBottomChartData] = useState();
   const [topUpsetsByWin, setTopUpsetsByWin] = useState([]);
   const [topUpsetsByPick, setTopUpsetsByPick] = useState([]);
@@ -89,26 +89,27 @@ function App() {
   const [currentEntry, setCurrentEntry] = useState({
     id: "",
     name: "",
-    doublePicksStart: 0,
+    doublePicksStart: undefined,
     clicked_cells: [],
     teams_used: [],
     hide_on_grid: false,
     week: 1,
   });
+  const [stats, setStats] = useState([]);
   const [intervalId, setIntervaId] = useState();
   const [intervalStarted, setIntervalStarted] = useState(false);
   const [pickData, setPickData] = useState(null);
   const [winData, setWinData] = useState(null);
   const [sortModel, setSortModel] = useState();
   const [loggedUser, setLoggedUser] = useState(
-    // {
-    //   logged_in: true,
-    //   user: {
-    //     id: 132865,
-    //     name: "George Coder",
-    //     email: "GeorgeMCoder57@gmail.com"
-    //   }
-    // }
+    {
+      logged_in: true,
+      user: {
+        id: 132865,
+        name: "George Coder",
+        email: "GeorgeMCoder57@gmail.com"
+      }
+    }
   );
   const [currentWeek, setCurrentWeek] = useState();
   const [liveWeek, setLiveWeek] = useState(1);
@@ -119,6 +120,7 @@ function App() {
     text: 'Loading...',
     loading: false,
   });
+  const [moneyLine, setMoneyLine] = useState([]);
   const [rowData, setRowData] = useState([]);
   const [isDirty, setIsDirty] = useState(false);
   const [showOptions, setShowOptions] = useState({
@@ -126,14 +128,15 @@ function App() {
     divisional: true,
     thursday: true,
     monday: true,
-    spreads: true,
+    lineType: 'moneyLine',
   });
   const [gameResults, setGameResults] = useState([]);
 
   useEffect(() => {
     fetchLoginInfo();
     fetchTeamMemberList();
-    loadLocalStorageData();
+    fetchMoneyLine();
+    fetchStats();
     // fetchFullWeekSchedule();
   }, []);
 
@@ -170,11 +173,17 @@ function App() {
         value: Number(targetWeek),
       })
     } else {
-      setLiveWeek(1);
-      setCurrentWeek({
-        label: `Week 1`,
-        value: 1
-      });
+      const savedCurrentWeek = JSON.parse(localStorage.getItem('currentWeek'));
+      if (savedCurrentWeek) {
+        setLiveWeek(savedCurrentWeek.value);
+        setCurrentWeek(savedCurrentWeek)
+      } else {
+        setLiveWeek(1);
+        setCurrentWeek({
+          label: `Week 1`,
+          value: 1
+        });
+      }
     }
   }, [currentDate]);
 
@@ -182,6 +191,7 @@ function App() {
   useEffect(() => {
     if (loggedUser?.logged_in === true) {
       handleLoadEntry();
+      loadLocalStorageData();
     }
     if (loggedUser?.logged_in === false) {
       loadLocalStorageData();
@@ -212,8 +222,17 @@ function App() {
     }
   }, [scoreData, currentWeek]);
 
+  const fetchMoneyLine = async () => {
+    const { data } = await API.get(`/money-line/`);
+    setMoneyLine(data);
+  }
+
+  const fetchStats = async () => {
+    const { data } = await API.get(`/stats/`);
+    setStats(data);
+  }
   const fetchLoginInfo = () => {
-    // return;
+    return;
     fetch(WP_API.root + "custom/v1/user-status", {
       method: "GET",
       headers: {
@@ -232,6 +251,10 @@ function App() {
 
   const loadLocalStorageData = () => {
     if (!loggedUser || loggedUser.logged_in === false) {
+      // const savedCurrentWeek = JSON.parse(localStorage.getItem('currentWeek'));
+      // if (savedCurrentWeek) {
+      //   setCurrentWeek(savedCurrentWeek);
+      // }
       const savedShowOptions = JSON.parse(localStorage.getItem('showOptions'));
       if (savedShowOptions) {
         setShowOptions(savedShowOptions);
@@ -243,22 +266,15 @@ function App() {
           clicked_cells: savedClickedCells
         })
       }
-      const savedCurrentWeek = JSON.parse(localStorage.getItem('currentWeek'));
-      if (savedCurrentWeek) {
-        setCurrentWeek(savedCurrentWeek);
-      }
     } else {
-      setShowOptions({
-        away: true,
-        divisional: true,
-        thursday: true,
-        monday: true,
-        spreads: true
-      });
-      setCurrentWeek({
-        label: `Week 1`,
-        value: 1
-      });
+      // const savedCurrentWeek = JSON.parse(localStorage.getItem('currentWeek'));
+      // if (savedCurrentWeek) {
+      //   setCurrentWeek(savedCurrentWeek);
+      // }
+      const savedShowOptions = JSON.parse(localStorage.getItem('showOptions'));
+      if (savedShowOptions) {
+        setShowOptions(savedShowOptions);
+      }
     }
   }
 
@@ -323,6 +339,9 @@ function App() {
   const filteredData = useMemo(() => {
     let customData = [...rowData];
 
+    if (!winData || winData.length === 0) {
+      return customData; // Don't render until winData is ready
+    }
     if (pickData && pickData.results.length > 0) {
       customData = customData.map((item) => {
         const targetPickItem = pickData.results.find(
@@ -365,16 +384,29 @@ function App() {
 
     if (sortModel?.length > 0) {
       const { colId, sort } = sortModel[0];
+      console.log(sortModel);
       customData.sort((a, b) => {
-        if (colId.includes('week')) {
-          if (parseFloat(a[colId].point) < parseFloat(b[colId].point)) return sort === 'asc' ? -1 : 1;
-          if (parseFloat(a[colId].point) > parseFloat(b[colId].point)) return sort === 'asc' ? 1 : -1;
-          return 0;
-        } else {
-          if (a[colId] < b[colId]) return sort === 'asc' ? -1 : 1;
-          if (a[colId] > b[colId]) return sort === 'asc' ? 1 : -1;
-          return 0;
-        }
+        const getValue = (item) => {
+          if (colId.includes('week')) {
+            if (showOptions.lineType === 'moneyLine') {
+              return item[colId]?.moneyLine ? parseFloat(item[colId].moneyLine) : null;
+            } else {
+              return item[colId]?.point ? parseFloat(item[colId].point) : null;
+            }
+          }
+          return item[colId] ?? null;
+        };
+
+        const valA = getValue(a);
+        const valB = getValue(b);
+
+        if (valA == null && valB == null) return 0;
+        if (valA == null) return 1; // a goes after b
+        if (valB == null) return -1; // b goes after a
+
+        // Compare normally
+        if (valA < valB) return sort === 'asc' ? -1 : 1;
+        if (valA > valB) return sort === 'asc' ? 1 : -1;
       });
     }
 
@@ -397,6 +429,45 @@ function App() {
       })
     }
 
+    if (moneyLine.length > 0) {
+      customData.forEach((item) => {
+        Array.from({ length: 18 }, (_, i) => i + 1)
+          .map((weekNum) => {
+            const weekHeader = `week${weekNum}`;
+            if (item[weekHeader].isAway) {
+              const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.AwayTeamName === item.name.replace('@', '') && moneyLineItem.HomeTeamName === item[weekHeader].name.replace('@', ''));
+              if (targetMoneyLineObj) {
+                item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].AwayMoneyLine;
+              }
+            } else {
+              const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.HomeTeamName === item.name.replace('@', '') && moneyLineItem.AwayTeamName === item[weekHeader].name.replace('@', ''));
+              if (targetMoneyLineObj) {
+                item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].HomeMoneyLine;
+              }
+            }
+          });
+      })
+    }
+
+    if (stats.length > 0) {
+      customData.forEach((item) => {
+        const targetStat = stats.find((stat) => stat.Team === item.name);
+        if (targetStat) {
+          const targetStatObj = {
+            wl: `${targetStat.Wins}-${targetStat.Losses}`,
+            streak: targetStat.Streak < 0 ? '1L' : `${targetStat.Streak}W`,
+            pfpa: `${targetStat.PointsFor} / ${targetStat.PointsAgainst}`
+          }
+
+          item.stats = targetStatObj;
+        }
+      })
+    }
+
+    setLoadingStatus({
+      text: 'Preparint Data',
+      loading: false,
+    });
     return customData;
   }, [
     currentEntry.hide_on_grid,
@@ -405,11 +476,15 @@ function App() {
     pickData,
     winData,
     sortModel,
-    gameResults
+    gameResults,
+    moneyLine,
+    stats
   ]);
 
   useEffect(() => {
-    reCalculateClickedCells();
+    if (currentEntry.clicked_cells.length > 0) {
+      reCalculateClickedCells();
+    }
   }, [filteredData]);
 
   const reCalculateClickedCells = () => {
@@ -550,26 +625,49 @@ function App() {
   }
 
   const getBackgroundColor = (cellData) => {
-    const point = cellData.point;
-    if (point > -3) {
-      return "#fdfffd";
-    } else if (point > -10 && point <= -3) {
-      // Gradient range: map point from [-10, -3] to [0, 1]
-      const t = (-3 - point) / 7; // 0 at -3, 1 at -10
+    if (showOptions.lineType === 'spreads') {
+      const point = cellData.point;
+      if (point > -3) {
+        return "#fdfffd";
+      } else if (point > -10 && point <= -3) {
+        // Gradient range: map point from [-10, -3] to [0, 1]
+        const t = (-3 - point) / 7; // 0 at -3, 1 at -10
 
-      // Interpolate between #fdfffd and #4cff4c
-      const startColor = [253, 255, 253]; // RGB of #fdfffd
-      const endColor = [76, 255, 76]; // RGB of #4cff4c
+        // Interpolate between #fdfffd and #4cff4c
+        const startColor = [253, 255, 253]; // RGB of #fdfffd
+        const endColor = [76, 255, 76]; // RGB of #4cff4c
 
-      const r = Math.round(startColor[0] + (endColor[0] - startColor[0]) * t);
-      const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * t);
-      const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * t);
+        const r = Math.round(startColor[0] + (endColor[0] - startColor[0]) * t);
+        const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * t);
+        const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * t);
 
-      const backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        const backgroundColor = `rgb(${r}, ${g}, ${b})`;
 
-      return backgroundColor;
-    } else if (point <= -10) {
-      return "#4cff4c";
+        return backgroundColor;
+      } else if (point <= -10) {
+        return "#4cff4c";
+      }
+    } else {
+      const point = cellData.moneyLine;
+      if (point > -175) {
+        return "#fdfffd";
+      } else if (point > -400 && point <= -175) {
+        // Gradient range: map point from [-10, -3] to [0, 1]
+        const t = (-175 - point) / 225; // 0 at -3, 1 at -10
+
+        // Interpolate between #fdfffd and #4cff4c
+        const startColor = [253, 255, 253]; // RGB of #fdfffd
+        const endColor = [76, 255, 76]; // RGB of #4cff4c
+
+        const r = Math.round(startColor[0] + (endColor[0] - startColor[0]) * t);
+        const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * t);
+        const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * t);
+
+        const backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        return backgroundColor;
+      } else if (point <= -400) {
+        return "#4cff4c";
+      }
     }
   };
   const getClassName = (cellData) => {
@@ -580,9 +678,9 @@ function App() {
     const isMonday = cellDate.getDay() === 1;
     const isThursday = cellDate.getDay() === 4;
 
-    if (!showOptions.spreads) {
-      className = "hide-spreads";
-    }
+    // if (!showOptions.spreads) {
+    //   className = "hide-spreads";
+    // }
 
     if (cellData.isAway) {
       className += showOptions.away ? "" : " gray";
@@ -687,20 +785,30 @@ function App() {
               <div className="name-value">
                 {props.data[`week${weekNum}`].name}
               </div>
-              <div className="point-value">
-                {`${props.data[`week${weekNum}`].point
-                  ? props.data[`week${weekNum}`].point > 0
-                    ? `+${props.data[`week${weekNum}`].point}`
-                    : props.data[`week${weekNum}`].point
-                  : ""
-                  }`}
-              </div>
+              {
+                showOptions.lineType === 'spreads' ? <div className="point-value">
+                  {`${props.data[`week${weekNum}`].point
+                    ? props.data[`week${weekNum}`].point > 0
+                      ? `+${props.data[`week${weekNum}`].point}`
+                      : props.data[`week${weekNum}`].point
+                    : ""
+                    }`}
+                </div> : <div className="point-value">
+                  {`${props.data[`week${weekNum}`].moneyLine
+                    ? props.data[`week${weekNum}`].moneyLine > 0
+                      ? `+${props.data[`week${weekNum}`].moneyLine}`
+                      : props.data[`week${weekNum}`].moneyLine
+                    : ""
+                    }`}
+                </div>
+              }
             </div>
           );
         },
-        width: 66,
-        minWidth: isMobile ? 86 : 60,
+        width: 60,
+        minWidth: isMobile ? 60 : 60,
         flex: 1,
+        maxWidth: isMobile ? 60 : 1000
       }));
 
     if (
@@ -755,7 +863,6 @@ function App() {
       {
         field: "name",
         headerName: "Team",
-        width: 80,
         sortable: true,
         cellClassRules: {
           "first-col-highlight": (params) => params.node.isSelected(),
@@ -787,8 +894,34 @@ function App() {
             </div>
           );
         },
-        flex: 1,
         pinned: "left",
+        width: 55,
+        minWidth: isMobile ? 45 : 56,
+      },
+      {
+        field: 'stats',
+        headerName: "Stats",
+        sortable: false,
+        pinned: "left",
+        width: 60,
+        minWidth: isMobile ? 60 : 60,
+        headerTooltip: 'W/L record, streak, and points for/against',
+        cellRenderer: (props) => {
+          return <div className="stats-values">
+            <div className="stats-values-top">
+              <div className="wl">
+                {props.value?.wl}
+              </div>
+              <div className="streak">
+                {props.value?.streak}
+              </div>
+            </div>
+            <div className="stats-values-bottom">
+              {props.value?.pfpa}
+            </div>
+          </div>
+        },
+        hide: currentWeek.value < 2,
       },
       // { field: "ev", headerName: "EV", width: 56, flex: 1 },
       {
@@ -825,10 +958,10 @@ function App() {
             </div>
           );
         },
-        width: 56,
+        width: 50,
         flex: 1,
         pinned: "left",
-        minWidth: isMobile ? 66 : 56,
+        minWidth: isMobile ? 45 : 56,
       },
       {
         field: "p_percent",
@@ -836,7 +969,7 @@ function App() {
         headerTooltip:
           "Percentage that each team is picked in a given week, based on all RotoBaller Survivor Tool users. Resets each week once a critical mass of picks have been made.",
         sortable: true,
-        hide: pickData && pickData.total < 5,
+        hide: pickData && pickData.total < 20,
         comparator: (valueA, valueB) => {
           return valueA - valueB;
         },
@@ -865,9 +998,9 @@ function App() {
             </div>
           );
         },
-        width: 56,
+        width: 50,
         // flex: 1,
-        minWidth: isMobile ? 66 : 56,
+        minWidth: isMobile ? 45 : 56,
       },
       ...weekCols,
     ];
@@ -1081,6 +1214,7 @@ function App() {
       setOpenSaveError(true);
       return;
     } else {
+      setDisableSaving(true);
       try {
         const payload = {
           ...currentEntry,
@@ -1100,7 +1234,7 @@ function App() {
               description: "Your new entry has been saved successfully.",
               placement: "bottomRight",
             });
-            handleLoadEntry();
+            handleLoadEntry(data.insert_id);
           }
         } else {
           const { data } = await API.put(`/entry/${currentEntry.id}`, payload);
@@ -1113,6 +1247,7 @@ function App() {
             handleLoadEntry();
           }
         }
+        setDisableSaving(false);
       } catch (e) {
         console.log(e);
         api.error({
@@ -1120,6 +1255,7 @@ function App() {
           description: e.response.data.error,
           placement: "bottomRight",
         });
+        setDisableSaving(false);
       }
     }
   };
@@ -1137,7 +1273,7 @@ function App() {
     }
   }
 
-  const handleLoadEntry = async () => {
+  const handleLoadEntry = async (newEntryId) => {
     if (loggedUser) {
       setLoadingStatus({
         text: 'Loading saved entries',
@@ -1150,7 +1286,7 @@ function App() {
       setCurrentEntry({
         id: "",
         name: "",
-        doublePicksStart: 0,
+        doublePicksStart: undefined,
         clicked_cells: [],
         teams_used: [],
         hide_on_grid: false,
@@ -1162,21 +1298,31 @@ function App() {
 
         if (Array.isArray(data) && data.length > 0) {
           // Try to find the previously selected entry
-          const previouslySelectedEntry = data.find(entry => entry.id === currentEntryId);
+          let previouslySelectedEntry = data.find(entry => entry.id === currentEntryId);
 
+          if (newEntryId) {
+            previouslySelectedEntry = data.find(entry => entry.id === newEntryId);
+          }
+          const savedCurrentEntry = JSON.parse(localStorage.getItem('currentEntry'));
+          let targetEntry = null;
+          if (savedCurrentEntry) {
+            targetEntry = data.find(entry => entry.id === savedCurrentEntry.id);
+          }
           // If the previously selected entry exists, use it; otherwise use the first entry
-          const entryToSelect = previouslySelectedEntry || data[0];
-
+          const entryToSelect = previouslySelectedEntry || targetEntry || data[0];
           handleChangeCurrentEntry(null, entryToSelect);
           setLoadingStatus({
             text: 'Loaded saved entries',
             loading: false,
           });
-          // api.success({
-          //   message: "Entries Loaded",
-          //   description: "All saved entries have been loaded successfully.",
-          //   placement: "bottomRight",
-          // });
+        } else {
+          const savedClickedCells = JSON.parse(localStorage.getItem('clicked_cells'));
+          if (savedClickedCells && savedClickedCells.length > 0) {
+            setCurrentEntry({
+              ...currentEntry,
+              clicked_cells: savedClickedCells
+            })
+          }
         }
         setIsDirty(false);
       } catch (e) {
@@ -1207,12 +1353,12 @@ function App() {
   const handleClearEntry = () => {
     setCurrentEntry({
       name: "",
-      doublePicksStart: 0,
+      doublePicksStart: undefined,
       clicked_cells: [],
       teams_used: [],
       hide_on_grid: false,
       week: 1,
-      id: "",
+      id: null,
     });
   };
 
@@ -1225,10 +1371,8 @@ function App() {
   };
 
   const handleChangeCurrentEntry = (value, option) => {
-    setCurrentEntry({
-      ...option,
-      hide_on_grid: option.hide_on_grid
-    });
+    setCurrentEntry(option);
+    localStorage.setItem('currentEntry', JSON.stringify(option));
   };
 
   const handleChangeTeamsUsed = (value, option) => {
@@ -1346,7 +1490,7 @@ function App() {
 
     setIsDirty(true);
 
-    if (currentEntry.doublePicksStart === 0) {
+    if (currentEntry.doublePicksStart === 0 || currentEntry.doublePicksStart === undefined) {
       let customclicked_cells = [];
       if (
         !currentEntry.clicked_cells.find(
@@ -1435,8 +1579,9 @@ function App() {
       }
 
       fetchWinProbability();
+
     }
-  }, [currentWeek, loadedEntries]);
+  }, [currentWeek]);
 
   // useEffect(() => {
   //   setTimeout(() => {
@@ -1447,46 +1592,39 @@ function App() {
   const fetchPickPercentages = async () => {
     try {
       setLoadingStatus({
-        text: 'Calculating pick percentages',
-        loading: true,
-      });
+        text: 'Loading',
+        loading: true
+      })
       const { data } = await API.get(
         `/entry/calculate-pick/${currentWeek.value}`
       );
       if (data && Array.isArray(data.results)) {
         setPickData(data);
       }
-      setLoadingStatus({
-        text: 'Calculated pick percentages',
-        loading: false,
-      });
     } catch (e) {
-      setLoadingStatus({
-        text: 'Failed to calculate pick percentages',
-        loading: false,
-      });
       console.log(e);
+      setLoadingStatus({
+        text: 'Loading',
+        loading: false
+      })
     }
   };
 
   const fetchWinProbability = async () => {
     try {
-      setLoadingStatus({
-        text: 'Calculating win probability',
-        loading: true,
-      });
+      setWinData([]);
       const { data } = await API.get(`/win-probability/${currentWeek.value}`);
       setWinData(data);
       setLoadingStatus({
-        text: 'Calculated win probability',
-        loading: false,
-      });
+        text: 'Loading',
+        loading: false
+      })
     } catch (e) {
-      setLoadingStatus({
-        text: 'Failed to calculate win probability',
-        loading: false,
-      });
       console.log(e);
+      setLoadingStatus({
+        text: 'Loading',
+        loading: false
+      })
     }
   };
 
@@ -1541,6 +1679,17 @@ function App() {
     }
 
     return null; // No week matched
+  }
+
+  const handleChangeLineType = (value) => {
+    setShowOptions({
+      ...showOptions,
+      lineType: value,
+    });
+    localStorage.setItem('showOptions', JSON.stringify({
+      ...showOptions,
+      lineType: value,
+    }));
   }
 
   if (window.location.href.includes('survivor-pool-elimination-and-knockout-data')) {
@@ -1638,6 +1787,7 @@ function App() {
                   value={currentEntry.name}
                   onChange={handleChangeEntryName}
                   style={{ width: "100%", height: '43px' }}
+                  placeholder="Create an Entry"
                 />
               </div>
               <EntryButtons>
@@ -1645,7 +1795,7 @@ function App() {
                   type="primary"
                   onClick={handleSaveEntry}
                   disabled={
-                    !currentEntry.name || !isDirty
+                    !currentEntry.name || !isDirty || disableSaving || currentEntry.clicked_cells.length < 1
                   }
                   shape="round"
                   className="save-btn"
@@ -1691,6 +1841,7 @@ function App() {
                     label: "name",
                     value: "id",
                   }}
+                  placeholder="Saved Entries"
                 />
               </div>
             }
@@ -1698,7 +1849,7 @@ function App() {
           <PanelBottom>
             <div className="teams-used">
               <TeamsUsedTitle>
-                <div className="teams-used">Previous Teams Used</div>
+                <div className="teams-used-title">Previous Teams Used</div>
                 <div className="show-switch">
                   <Switch
                     checked={currentEntry.hide_on_grid}
@@ -1719,6 +1870,7 @@ function App() {
                   value: "name",
                 }}
                 mode="multiple"
+                placeholder="Previous Teams Used"
                 // allowClear
                 style={{ width: "100%", minHeight: '43px', height: 'fit-content' }}
               />
@@ -1734,6 +1886,7 @@ function App() {
                   ...fullWeeks,
                 ]}
                 value={currentEntry.doublePicksStart}
+                placeholder="Double Picks Start"
                 onChange={handleChangeDoublePicks}
                 style={{ width: "331px", minHeight: '43px', height: '43px' }}
               />
@@ -1789,14 +1942,20 @@ function App() {
               />
               <ToolText>Monday Games</ToolText>
             </ToolOutline>
-            <ToolOutline>
-              <Switch
-                checked={showOptions.spreads}
-                onChange={(checked) => handleToggle(checked, "spreads")}
-                size="small"
-              />
-              <ToolText>Spreads</ToolText>
-            </ToolOutline>
+            <Select
+              prefix={<img src={DiceIcon} width="20px" height="20px" alt="" />}
+              options={[{
+                label: 'Spreads',
+                value: 'spreads'
+              }, {
+                label: 'Money Line',
+                value: 'moneyLine'
+              }]}
+              value={showOptions.lineType}
+              onChange={handleChangeLineType}
+              className="line-select"
+              style={{ width: "170px", height: "42px" }}
+            />
           </FilterButtons>
         </FilterWrapper>
       )}
@@ -1831,35 +1990,48 @@ function App() {
             />
             <ToolText>Monday Games</ToolText>
           </ToolOutline>
-          <ToolOutline>
-            <Switch
-              checked={showOptions.spreads}
-              onChange={(checked) => handleToggle(checked, "spreads")}
-            />
-            <ToolText>Spreads</ToolText>
-          </ToolOutline>
+          <Select
+            prefix={<img src={DiceIcon} width="20px" height="20px" alt="" />}
+            options={[{
+              label: 'Spreads',
+              value: 'spreads'
+            }, {
+              label: 'Money Line',
+              value: 'moneyLine'
+            }]}
+            value={showOptions.lineType}
+            onChange={handleChangeLineType}
+            className="line-select"
+            style={{ width: "170px", height: "42px" }}
+          />
         </div>
       )}
       <GridWrapper className="grid-wrapper" simple={window.location.href.includes(
         "survivor-pool-aggregate-consensus-picks-and-data"
       )}>
-        <AgGridReact
-          rowData={filteredData}
-          columnDefs={customColDefs}
-          loading={loadingStatus.loading}
-          rowHeight={41}
-          headerHeight={41}
-          onGridReady={onGridReady}
-          onCellClicked={handleCellClick}
-          tooltipShowDelay={0} // ← show immediately
-          enableBrowserTooltips={false}
-          onSortChanged={handleSortChange}
-          defaultColDef={{
-            sortable: true,
-            sortingOrder: ["asc", "desc"], // disables 3rd state
-            suppressMovable: true,
-          }}
-        />
+        {loadingStatus.loading === true ?
+          <div className="loading-wrapper">
+            <Spin tip="Loading" size="large">
+            </Spin>
+          </div> :
+          <AgGridReact
+            rowData={filteredData}
+            columnDefs={customColDefs}
+            // loading={!!loadingStatus.loading}
+            rowHeight={41}
+            headerHeight={41}
+            onGridReady={onGridReady}
+            onCellClicked={handleCellClick}
+            tooltipShowDelay={0} // ← show immediately
+            enableBrowserTooltips={false}
+            onSortChanged={handleSortChange}
+            defaultColDef={{
+              sortable: true,
+              sortingOrder: ["asc", "desc"], // disables 3rd state
+              suppressMovable: true,
+            }}
+          />
+        }
       </GridWrapper>
       <Modal
         open={openSaveError}
