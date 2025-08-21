@@ -102,14 +102,14 @@ function App() {
   const [winData, setWinData] = useState(null);
   const [sortModel, setSortModel] = useState();
   const [loggedUser, setLoggedUser] = useState(
-    {
-      logged_in: true,
-      user: {
-        id: 132865,
-        name: "George Coder",
-        email: "GeorgeMCoder57@gmail.com"
-      }
-    }
+    // {
+    //   logged_in: true,
+    //   user: {
+    //     id: 132865,
+    //     name: "George Coder",
+    //     email: "GeorgeMCoder57@gmail.com"
+    //   }
+    // }
   );
   const [currentWeek, setCurrentWeek] = useState();
   const [liveWeek, setLiveWeek] = useState(1);
@@ -232,7 +232,7 @@ function App() {
     setStats(data);
   }
   const fetchLoginInfo = () => {
-    return;
+    // return;
     fetch(WP_API.root + "custom/v1/user-status", {
       method: "GET",
       headers: {
@@ -338,7 +338,7 @@ function App() {
 
   const filteredData = useMemo(() => {
     let customData = [...rowData];
-
+    
     if (!winData || winData.length === 0) {
       return customData; // Don't render until winData is ready
     }
@@ -406,7 +406,7 @@ function App() {
 
         // Compare normally
         if (valA < valB) return sort === 'asc' ? -1 : 1;
-        if (valA > valB) return sort === 'asc' ? 1 : -1;
+        if (valA > valB) return sort === 'asc' ? 1 : -1;    
       });
     }
 
@@ -432,20 +432,20 @@ function App() {
     if (moneyLine.length > 0) {
       customData.forEach((item) => {
         Array.from({ length: 18 }, (_, i) => i + 1)
-          .map((weekNum) => {
-            const weekHeader = `week${weekNum}`;
-            if (item[weekHeader].isAway) {
-              const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.AwayTeamName === item.name.replace('@', '') && moneyLineItem.HomeTeamName === item[weekHeader].name.replace('@', ''));
-              if (targetMoneyLineObj) {
-                item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].AwayMoneyLine;
-              }
-            } else {
-              const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.HomeTeamName === item.name.replace('@', '') && moneyLineItem.AwayTeamName === item[weekHeader].name.replace('@', ''));
-              if (targetMoneyLineObj) {
-                item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].HomeMoneyLine;
-              }
+        .map((weekNum) => {
+          const weekHeader = `week${weekNum}`;
+          if (item[weekHeader].isAway) {
+            const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.AwayTeamName === item.name.replace('@', '') && moneyLineItem.HomeTeamName === item[weekHeader].name.replace('@', ''));
+            if (targetMoneyLineObj) {
+              item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].AwayMoneyLine;
             }
-          });
+          } else {
+            const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.HomeTeamName === item.name.replace('@', '') && moneyLineItem.AwayTeamName === item[weekHeader].name.replace('@', ''));
+            if (targetMoneyLineObj) {
+              item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].HomeMoneyLine;
+            }
+          }
+        });
       })
     }
 
@@ -632,17 +632,17 @@ function App() {
       } else if (point > -10 && point <= -3) {
         // Gradient range: map point from [-10, -3] to [0, 1]
         const t = (-3 - point) / 7; // 0 at -3, 1 at -10
-
+  
         // Interpolate between #fdfffd and #4cff4c
         const startColor = [253, 255, 253]; // RGB of #fdfffd
         const endColor = [76, 255, 76]; // RGB of #4cff4c
-
+  
         const r = Math.round(startColor[0] + (endColor[0] - startColor[0]) * t);
         const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * t);
         const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * t);
-
+  
         const backgroundColor = `rgb(${r}, ${g}, ${b})`;
-
+  
         return backgroundColor;
       } else if (point <= -10) {
         return "#4cff4c";
@@ -654,15 +654,15 @@ function App() {
       } else if (point > -400 && point <= -175) {
         // Gradient range: map point from [-10, -3] to [0, 1]
         const t = (-175 - point) / 225; // 0 at -3, 1 at -10
-
+  
         // Interpolate between #fdfffd and #4cff4c
         const startColor = [253, 255, 253]; // RGB of #fdfffd
         const endColor = [76, 255, 76]; // RGB of #4cff4c
-
+  
         const r = Math.round(startColor[0] + (endColor[0] - startColor[0]) * t);
         const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * t);
         const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * t);
-
+  
         const backgroundColor = `rgb(${r}, ${g}, ${b})`;
         return backgroundColor;
       } else if (point <= -400) {
@@ -808,7 +808,7 @@ function App() {
         width: 60,
         minWidth: isMobile ? 60 : 60,
         flex: 1,
-        maxWidth: isMobile ? 60 : 1000
+        maxWidth: isMobile ? 60: 1000
       }));
 
     if (
@@ -2002,7 +2002,7 @@ function App() {
             value={showOptions.lineType}
             onChange={handleChangeLineType}
             className="line-select"
-            style={{ width: "170px", height: "42px" }}
+            style={{ width: "100%", height: "42px" }}
           />
         </div>
       )}
@@ -2013,7 +2013,7 @@ function App() {
           <div className="loading-wrapper">
             <Spin tip="Loading" size="large">
             </Spin>
-          </div> :
+          </div> : 
           <AgGridReact
             rowData={filteredData}
             columnDefs={customColDefs}

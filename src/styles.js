@@ -18,7 +18,16 @@ export const AppWrapper = styled.div`
     }
 
     @media screen and (max-width: 1100px) {
-      margin-bottom: 10px;
+      .entry-name,
+      .double-picks-start,
+      .teams-used-title {
+        display: none;
+      }
+
+      .ant-select-selection-placeholder {
+        font-size: 16px !important;
+        font-weight: normal !important;
+      }
     }
   }
 
@@ -93,7 +102,7 @@ export const AppWrapper = styled.div`
     order: 4;
 
     @media screen and (max-width: 1100px) {
-      order: 3;
+      order: 5;
       width: 100%;
       padding: 0;
       margin-bottom: 12px;
@@ -147,7 +156,7 @@ export const FilterWrapper = styled.div`
   }
 
   @media screen and (max-width: 1100px) {
-    order: 2;
+    order: 5;
     flex-direction: column;
     align-items: flex-start;
     margin: 0px;
@@ -379,6 +388,30 @@ export const GridWrapper = styled.div`
     background-color: #30c5ffcc;
     position: absolute;
     left: calc(50% - 2.5px);
+  }
+
+  .stats-values * {
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    line-height: 100% !important;
+  }
+
+  .stats-values {
+    height: calc(100% - 10px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 5px;
+
+    .stats-values-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .stats-values-bottom {
+      text-align: center;
+    }
   }
 
   .win-percent,
@@ -625,7 +658,11 @@ export const PanelBottom = styled.div`
     }
 
     .ant-select-selection-overflow {
-      display: block !important;
+      height: 43px;
+    }
+
+    .ant-select-selection-item-content {
+      line-height: 19px !important;
     }
   }
 
