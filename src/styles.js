@@ -106,6 +106,19 @@ export const AppWrapper = styled.div`
       width: 100%;
       padding: 0;
       margin-bottom: 12px;
+
+      .line-select .ant-select-prefix {
+        height: 20px !important;
+
+        img {
+          width: 20px !important;
+          height: 20px !important;
+        }
+      }
+
+      .ant-select-prefix img {
+        padding: 0 !important;
+      }
     }
   }
 
@@ -150,6 +163,10 @@ export const FilterWrapper = styled.div`
   gap: 8px;
   margin-bottom: 12px;
   order: 5;
+
+  .line-select .ant-select-selector {
+    border-radius: 8px !important;
+  }
 
   .week-select .ant-select-selector {
     border-radius: 8px;
@@ -333,6 +350,14 @@ export const GridWrapper = styled.div`
   position: relative;
   margin: ${(props) => (props.simple ? "auto !important" : "0 !important")};
 
+  & > div:first-child {
+    border: none !important;
+  }
+
+  .ag-theme-params-3 {
+    border: none !important;
+  }
+
   .loading-wrapper {
     position: absolute;
     left: 0;
@@ -372,7 +397,7 @@ export const GridWrapper = styled.div`
   }
   .red-bar-horizontal {
     width: 100%;
-    height: 5px;
+    height: 4px;
     background: #30c5ffcc;
     position: absolute;
     top: calc(50% - 2.5px);
@@ -396,7 +421,7 @@ export const GridWrapper = styled.div`
   }
 
   .red-bar {
-    width: 5px;
+    width: 4px;
     height: 100%;
     background-color: #30c5ffcc;
     position: absolute;
@@ -410,31 +435,41 @@ export const GridWrapper = styled.div`
   }
 
   .stats-values {
-    height: calc(100% - 10px);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 5px;
 
     .stats-values-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding-top: 5px;
+      padding-left: 5px;
+      padding-right: 5px;
     }
 
     .stats-values-bottom {
       text-align: center;
+      padding-bottom: 5px;
+      padding-left: 5px;
+      padding-right: 5px;
     }
   }
 
   .win-percent,
-  .pick-percent {
+  .pick-percent,
+  .fv-value,
+  .stats-values {
     position: relative;
     background: white;
+    max-height: 29px;
+  }
 
+  .win-percent,
+  .pick-percent {
     @media screen and (max-width: 480px) {
-      font-size: 14px !important;
-      line-height: 38px !important;
+      font-size: 13px !important;
+      line-height: inherit !important;
     }
   }
 
@@ -444,11 +479,12 @@ export const GridWrapper = styled.div`
 
   .ag-cell.cell-selected {
     font-weight: bold;
-    border: 5px solid #30c5ffcc !important;
+    border: 3px solid #30c5ffcc !important;
+    border-bottom-width: 4px !important;
     box-sizing: border-box;
 
     .name-value {
-      line-height: 30px;
+      line-height: inherit !important;
 
       @media screen and (max-width: 480px) {
         font-size: 14px !important;
@@ -509,8 +545,8 @@ export const GridWrapper = styled.div`
     height: 100%;
 
     @media screen and (max-width: 480px) {
-      font-size: 14px !important;
-      line-height: 38px !important;
+      font-size: 13px !important;
+      line-height: inherit !important;
     }
   }
 
@@ -527,15 +563,20 @@ export const GridWrapper = styled.div`
   }
 
   .name-value {
-    font-size: 14px;
+    margin-right: 2px !important;
+  }
+
+  .name-value,
+  .fv-value {
+    font-size: 13px;
     font-weight: 500;
-    line-height: 35px;
+    line-height: inherit;
     color: black;
     height: 100% !important;
 
     @media screen and (max-width: 480px) {
-      font-size: 14px !important;
-      line-height: 38px !important;
+      font-size: 13px !important;
+      line-height: inherit !important;
     }
   }
 
@@ -543,13 +584,13 @@ export const GridWrapper = styled.div`
     position: absolute;
     right: 2px;
     bottom: 2px;
-    font-size: 10px;
+    font-size: 8px;
     font-weight: 500;
     color: #797979;
     line-height: 100%;
 
     @media screen and (max-width: 480px) {
-      font-size: 10px !important;
+      font-size: 8px !important;
       line-height: 100% !important;
     }
   }
@@ -671,7 +712,7 @@ export const PanelBottom = styled.div`
     }
 
     .ant-select-selection-overflow {
-      height: 43px;
+      min-height: 43px;
     }
 
     .ant-select-selection-item-content {
@@ -709,6 +750,10 @@ export const PanelBottom = styled.div`
 
     .teams-used {
       width: 100%;
+
+      .ant-select-selection-overflow-item {
+        margin: 0 !important;
+      }
 
       .ant-select {
         width: 100% !important;

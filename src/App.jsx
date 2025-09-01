@@ -100,6 +100,7 @@ function App() {
   const [intervalStarted, setIntervalStarted] = useState(false);
   const [pickData, setPickData] = useState(null);
   const [winData, setWinData] = useState(null);
+  const [fvData, setFVData] = useState(null);
   const [sortModel, setSortModel] = useState();
   const [loggedUser, setLoggedUser] = useState(
     // {
@@ -133,10 +134,12 @@ function App() {
   const [gameResults, setGameResults] = useState([]);
 
   useEffect(() => {
+    console.log('initial fetch login');
     fetchLoginInfo();
     fetchTeamMemberList();
     fetchMoneyLine();
     fetchStats();
+    fetchFV();
     // fetchFullWeekSchedule();
   }, []);
 
@@ -163,6 +166,7 @@ function App() {
 
   useEffect(() => {
     const targetWeek = calculateCurrentWeek();
+
     if (targetWeek > 0) {
       if (targetWeek === 18) {
         clearInterval(intervalId);
@@ -225,6 +229,17 @@ function App() {
   const fetchMoneyLine = async () => {
     const { data } = await API.get(`/money-line/`);
     setMoneyLine(data);
+  }
+
+  const adjustGridHeight = () => {
+    const gridWrapper = document.querySelector('.grid-wrapper');
+    if (gridWrapper) {
+      const pinnedWrapper = document.querySelector('.ag-pinned-left-cols-container');
+      if (pinnedWrapper) {
+        const newHeight = document.querySelector('.ag-pinned-left-cols-container').clientHeight;
+        gridWrapper.style.height = `${newHeight + 34}px`;
+      }
+    }
   }
 
   const fetchStats = async () => {
@@ -338,7 +353,7 @@ function App() {
 
   const filteredData = useMemo(() => {
     let customData = [...rowData];
-    
+
     if (!winData || winData.length === 0) {
       return customData; // Don't render until winData is ready
     }
@@ -357,6 +372,23 @@ function App() {
 
         return item;
       });
+    }
+
+    if (fvData && fvData.length > 0) {
+      customData = customData.map((item) => {
+        const targetFVItem = fvData.find(
+          (fvItem) => fvItem.abbreviation === item.name
+        );
+
+        if (targetFVItem) {
+          return {
+            ...item,
+            fv: Number(targetFVItem.fv),
+          };
+        }
+
+        return item;
+      })
     }
 
     if (winData && winData.results.length > 0) {
@@ -384,7 +416,6 @@ function App() {
 
     if (sortModel?.length > 0) {
       const { colId, sort } = sortModel[0];
-      console.log(sortModel);
       customData.sort((a, b) => {
         const getValue = (item) => {
           if (colId.includes('week')) {
@@ -406,17 +437,13 @@ function App() {
 
         // Compare normally
         if (valA < valB) return sort === 'asc' ? -1 : 1;
-        if (valA > valB) return sort === 'asc' ? 1 : -1;    
+        if (valA > valB) return sort === 'asc' ? 1 : -1;
       });
     }
 
     if (currentEntry.hide_on_grid || currentEntry?.teams_used.length > 0) {
       setTimeout(() => {
-        const gridWrapper = document.querySelector('.grid-wrapper');
-        if (gridWrapper) {
-          const newHeight = document.querySelector('.ag-pinned-left-cols-container').clientHeight;
-          gridWrapper.style.height = `${newHeight + 44}px`;
-        }
+        adjustGridHeight();
       }, 500);
     }
 
@@ -432,20 +459,20 @@ function App() {
     if (moneyLine.length > 0) {
       customData.forEach((item) => {
         Array.from({ length: 18 }, (_, i) => i + 1)
-        .map((weekNum) => {
-          const weekHeader = `week${weekNum}`;
-          if (item[weekHeader].isAway) {
-            const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.AwayTeamName === item.name.replace('@', '') && moneyLineItem.HomeTeamName === item[weekHeader].name.replace('@', ''));
-            if (targetMoneyLineObj) {
-              item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].AwayMoneyLine;
+          .map((weekNum) => {
+            const weekHeader = `week${weekNum}`;
+            if (item[weekHeader].isAway) {
+              const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.AwayTeamName === item.name.replace('@', '') && moneyLineItem.HomeTeamName === item[weekHeader].name.replace('@', ''));
+              if (targetMoneyLineObj) {
+                item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].AwayMoneyLine;
+              }
+            } else {
+              const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.HomeTeamName === item.name.replace('@', '') && moneyLineItem.AwayTeamName === item[weekHeader].name.replace('@', ''));
+              if (targetMoneyLineObj) {
+                item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].HomeMoneyLine;
+              }
             }
-          } else {
-            const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.HomeTeamName === item.name.replace('@', '') && moneyLineItem.AwayTeamName === item[weekHeader].name.replace('@', ''));
-            if (targetMoneyLineObj) {
-              item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].HomeMoneyLine;
-            }
-          }
-        });
+          });
       })
     }
 
@@ -485,6 +512,8 @@ function App() {
     if (currentEntry.clicked_cells.length > 0) {
       reCalculateClickedCells();
     }
+
+    adjustGridHeight();
   }, [filteredData]);
 
   const reCalculateClickedCells = () => {
@@ -632,17 +661,17 @@ function App() {
       } else if (point > -10 && point <= -3) {
         // Gradient range: map point from [-10, -3] to [0, 1]
         const t = (-3 - point) / 7; // 0 at -3, 1 at -10
-  
+
         // Interpolate between #fdfffd and #4cff4c
         const startColor = [253, 255, 253]; // RGB of #fdfffd
         const endColor = [76, 255, 76]; // RGB of #4cff4c
-  
+
         const r = Math.round(startColor[0] + (endColor[0] - startColor[0]) * t);
         const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * t);
         const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * t);
-  
+
         const backgroundColor = `rgb(${r}, ${g}, ${b})`;
-  
+
         return backgroundColor;
       } else if (point <= -10) {
         return "#4cff4c";
@@ -654,15 +683,15 @@ function App() {
       } else if (point > -400 && point <= -175) {
         // Gradient range: map point from [-10, -3] to [0, 1]
         const t = (-175 - point) / 225; // 0 at -3, 1 at -10
-  
+
         // Interpolate between #fdfffd and #4cff4c
         const startColor = [253, 255, 253]; // RGB of #fdfffd
         const endColor = [76, 255, 76]; // RGB of #4cff4c
-  
+
         const r = Math.round(startColor[0] + (endColor[0] - startColor[0]) * t);
         const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * t);
         const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * t);
-  
+
         const backgroundColor = `rgb(${r}, ${g}, ${b})`;
         return backgroundColor;
       } else if (point <= -400) {
@@ -730,6 +759,53 @@ function App() {
 
     return "";
   };
+
+  const customCellRenderer = (props, customClass) => {
+    const { node, colDef } = props;
+    const isSameRow = currentEntry.clicked_cells.find(
+      (item) => item.rowIndex === node.rowIndex
+    );
+    const isCurrentCell = currentEntry.clicked_cells.find(
+      (item) =>
+        node.rowIndex === item.rowIndex && colDef.field === item.colId
+    );
+
+    return (
+      <div className={customClass}>
+        {currentEntry.teams_used.includes(props.data.name) && (
+          <div className="red-bar-horizontal" />
+        )}
+        {!isCurrentCell && isSameRow && (
+          <div className="red-bar-horizontal" />
+        )}
+
+        {customClass === 'win-percent' && (
+          props.value > 0 ? `${props.value}%` : '-'
+        )}
+        {customClass === 'pick-percent' && (
+          props.value > 0 ? `${props.value}%` : '-'
+        )}
+        {customClass === 'fv-value' && (
+          props.value
+        )}
+        {customClass === 'stats-values' && (
+          <>
+            <div className="stats-values-top">
+              <div className="wl">
+                {props.value?.wl}
+              </div>
+              <div className="streak">
+                {props.value?.streak}
+              </div>
+            </div>
+            <div className="stats-values-bottom">
+              {props.value?.pfpa}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
   const customColDefs = useMemo(() => {
     if (!currentWeek) {
@@ -808,7 +884,7 @@ function App() {
         width: 60,
         minWidth: isMobile ? 60 : 60,
         flex: 1,
-        maxWidth: isMobile ? 60: 1000
+        maxWidth: isMobile ? 60 : 1000
       }));
 
     if (
@@ -899,32 +975,6 @@ function App() {
         minWidth: isMobile ? 45 : 56,
       },
       {
-        field: 'stats',
-        headerName: "Stats",
-        sortable: false,
-        pinned: "left",
-        width: 60,
-        minWidth: isMobile ? 60 : 60,
-        headerTooltip: 'W/L record, streak, and points for/against',
-        cellRenderer: (props) => {
-          return <div className="stats-values">
-            <div className="stats-values-top">
-              <div className="wl">
-                {props.value?.wl}
-              </div>
-              <div className="streak">
-                {props.value?.streak}
-              </div>
-            </div>
-            <div className="stats-values-bottom">
-              {props.value?.pfpa}
-            </div>
-          </div>
-        },
-        hide: currentWeek.value < 2,
-      },
-      // { field: "ev", headerName: "EV", width: 56, flex: 1 },
-      {
         field: "win_probability",
         headerName: "W%",
         headerTooltip:
@@ -936,28 +986,7 @@ function App() {
         comparator: (valueA, valueB) => {
           return valueA - valueB;
         },
-        cellRenderer: (props) => {
-          const { node, colDef } = props;
-          const isSameRow = currentEntry.clicked_cells.find(
-            (item) => item.rowIndex === node.rowIndex
-          );
-          const isCurrentCell = currentEntry.clicked_cells.find(
-            (item) =>
-              node.rowIndex === item.rowIndex && colDef.field === item.colId
-          );
-
-          return (
-            <div className="win-percent">
-              {currentEntry.teams_used.includes(props.data.name) && (
-                <div className="red-bar-horizontal" />
-              )}
-              {!isCurrentCell && isSameRow && (
-                <div className="red-bar-horizontal" />
-              )}
-              {props.value > 0 ? `${props.value}%` : '-'}
-            </div>
-          );
-        },
+        cellRenderer: (props) => customCellRenderer(props, 'win-percent'),
         width: 50,
         flex: 1,
         pinned: "left",
@@ -969,38 +998,35 @@ function App() {
         headerTooltip:
           "Percentage that each team is picked in a given week, based on all RotoBaller Survivor Tool users. Resets each week once a critical mass of picks have been made.",
         sortable: true,
-        hide: pickData && pickData.total < 20,
+        hide: !pickData || pickData.results && pickData.results.length < 50,
         comparator: (valueA, valueB) => {
           return valueA - valueB;
         },
         cellClassRules: {
           "cell-disabled": (params) => isDisabled(params),
         },
-        cellRenderer: (props) => {
-          const { node, colDef } = props;
-          const isSameRow = currentEntry.clicked_cells.find(
-            (item) => item.rowIndex === node.rowIndex
-          );
-          const isCurrentCell = currentEntry.clicked_cells.find(
-            (item) =>
-              node.rowIndex === item.rowIndex && colDef.field === item.colId
-          );
-
-          return (
-            <div className="pick-percent">
-              {currentEntry.teams_used.includes(props.data.name) && (
-                <div className="red-bar-horizontal" />
-              )}
-              {!isCurrentCell && isSameRow && (
-                <div className="red-bar-horizontal" />
-              )}
-              {`${props.value}%`}
-            </div>
-          );
-        },
+        cellRenderer: (props) => customCellRenderer(props, 'pick-percent'),
         width: 50,
         // flex: 1,
         minWidth: isMobile ? 45 : 56,
+      },
+      {
+        field: "fv",
+        headerName: "FV",
+        width: 56,
+        headerTooltip: "Aggregate future value of a team, on a 0-100 scale. Utilizes RotoBaller Win Probability to simply show which team's have the most value beyond the current week",
+        cellRenderer: (props) => customCellRenderer(props, 'fv-value'),
+      },
+      {
+        field: 'stats',
+        headerName: "Stats",
+        sortable: false,
+        width: 60,
+        minWidth: isMobile ? 60 : 60,
+        headerTooltip: 'W/L record, streak, and points for/against',
+        cellRenderer: (props) => customCellRenderer(props, 'stats-values'),
+
+        hide: currentWeek.value < 2,
       },
       ...weekCols,
     ];
@@ -1177,6 +1203,8 @@ function App() {
         text: 'Full week schedule loaded',
         loading: false,
       });
+      console.log('login info fetch after full week schedule loaded');
+      fetchLoginInfo();
     } catch (e) {
       console.log(e);
       setLoadingStatus({
@@ -1262,6 +1290,8 @@ function App() {
 
   const onGridReady = useCallback(({ api }) => {
     gridApiRef.current = api;
+    console.log('on grid ready');
+    fetchLoginInfo();
   }, []);
 
   const fetchTotalEntries = async () => {
@@ -1579,7 +1609,6 @@ function App() {
       }
 
       fetchWinProbability();
-
     }
   }, [currentWeek]);
 
@@ -1615,6 +1644,24 @@ function App() {
       setWinData([]);
       const { data } = await API.get(`/win-probability/${currentWeek.value}`);
       setWinData(data);
+      setLoadingStatus({
+        text: 'Loading',
+        loading: false
+      })
+    } catch (e) {
+      console.log(e);
+      setLoadingStatus({
+        text: 'Loading',
+        loading: false
+      })
+    }
+  };
+
+  const fetchFV = async () => {
+    try {
+      setFVData([]);
+      const { data } = await API.get(`/fv-data`);
+      setFVData(data);
       setLoadingStatus({
         text: 'Loading',
         loading: false
@@ -2013,13 +2060,12 @@ function App() {
           <div className="loading-wrapper">
             <Spin tip="Loading" size="large">
             </Spin>
-          </div> : 
+          </div> :
           <AgGridReact
             rowData={filteredData}
             columnDefs={customColDefs}
-            // loading={!!loadingStatus.loading}
-            rowHeight={41}
-            headerHeight={41}
+            rowHeight={31}
+            headerHeight={31}
             onGridReady={onGridReady}
             onCellClicked={handleCellClick}
             tooltipShowDelay={0} // ← show immediately
