@@ -250,6 +250,7 @@ function App() {
     // return;
     fetch(WP_API.root + "custom/v1/user-status", {
       method: "GET",
+      credentials: "include", // This is crucial for sending cookies
       headers: {
         "X-WP-Nonce": WP_API.nonce,
         "Content-Type": "application/json",
@@ -261,6 +262,9 @@ function App() {
         if (!loggedUser) {
           setLoggedUser(data);
         }
+      })
+      .catch((error) => {
+        console.error("Error fetching login info:", error);
       });
   };
 
@@ -1696,13 +1700,15 @@ function App() {
       etTime.hour() === 1;
 
     if (isTuesday1AM) {
-      let customState = gridApiRef.current.getColumnState();
-      customState[1].sort = 'desc';
+      if (gridApiRef.current) {
+        let customState = gridApiRef.current.getColumnState();
+        customState[1].sort = 'desc';
 
-      gridApiRef.current.applyColumnState({
-        state: customState,
-        applyOrder: true
-      });
+        gridApiRef.current.applyColumnState({
+          state: customState,
+          applyOrder: true
+        });
+      }
 
       for (let week = 1; week <= 18; week++) {
         const weekKey = `week${week}`;
