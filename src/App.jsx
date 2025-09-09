@@ -103,14 +103,14 @@ function App() {
   const [fvData, setFVData] = useState(null);
   const [sortModel, setSortModel] = useState();
   const [loggedUser, setLoggedUser] = useState(
-    {
-      logged_in: true,
-      user: {
-        id: 2991,
-        name: "George Coder",
-        email: "GeorgeMCoder57@gmail.com"
-      }
-    }
+    // {
+    //   logged_in: true,
+    //   user: {
+    //     id: 2991,
+    //     name: "George Coder",
+    //     email: "GeorgeMCoder57@gmail.com"
+    //   }
+    // }
   );
   const [currentWeek, setCurrentWeek] = useState();
   const [liveWeek, setLiveWeek] = useState(1);
@@ -145,13 +145,18 @@ function App() {
 
   useEffect(() => {
     if (rowData.length > 0 && gridApiRef.current && !intervalStarted) {
-      const interval = setInterval(() => {
-        setCurrentDate(new Date());
-      }, 1000 * 60 * 60);  // update current date every hour
-      setIntervalStarted(true);
-      setIntervaId(interval);
+      setCurrentDate(new Date());
+      updateCurrentDate();
     }
   }, [rowData, gridApiRef, intervalStarted])
+
+  const updateCurrentDate = () => {
+    const interval = setInterval(() => {
+      setCurrentDate(new Date());
+    }, 1000 * 60 * 60);  // update current date every hour
+    setIntervalStarted(true);
+    setIntervaId(interval);
+  }
 
   useEffect(() => {
     if (!window.location.href.includes('nfl-survivor-grid-football-survivor-pool-picks-tool')) {
@@ -166,7 +171,7 @@ function App() {
 
   useEffect(() => {
     const targetWeek = calculateCurrentWeek();
-
+    console.log('targetweek', targetWeek);
     if (targetWeek > 0) {
       if (targetWeek === 18) {
         clearInterval(intervalId);
@@ -258,7 +263,7 @@ function App() {
     setStats(data);
   }
   const fetchLoginInfo = () => {
-    return;
+    // return;
     fetch(WP_API.root + "custom/v1/user-status", {
       method: "GET",
       credentials: "include", // This is crucial for sending cookies
@@ -1732,21 +1737,21 @@ function App() {
 
   const calculateCurrentWeek = () => {
     // const etTime = moment(currentDate).tz("America/New_York");
-    // const etTime = moment(currentDate);
-    const etTime = moment();
+    const etTime = moment(currentDate);
+    // const etTime = moment();
     const isTuesday1AM = etTime.day() === 2 &&
       etTime.hour() === 1;
 
-    if (isTuesday1AM) {
-      if (gridApiRef.current) {
-        let customState = gridApiRef.current.getColumnState();
-        customState[1].sort = 'desc';
+    if (!isTuesday1AM) {
+      // if (gridApiRef.current) {
+      //   let customState = gridApiRef.current.getColumnState();
+      //   customState[1].sort = 'desc';
 
-        gridApiRef.current.applyColumnState({
-          state: customState,
-          applyOrder: true
-        });
-      }
+      //   gridApiRef.current.applyColumnState({
+      //     state: customState,
+      //     applyOrder: true
+      //   });
+      // }
 
       for (let week = 1; week <= 18; week++) {
         const weekKey = `week${week}`;
@@ -1761,10 +1766,15 @@ function App() {
         const end = moment.max(weekDates);
         const sameWeekAsStart = etTime.isSame(start, 'week');
         const sameWeekAsEnd = etTime.isSame(end, 'week');
+        const isAfter = etTime.isAfter(end, 'week');
+        const isBefore = etTime.isBefore(end, 'week');
         const isInRange = etTime.isBetween(start, end, null, '[]'); // inclusive
 
-        if (isInRange || sameWeekAsStart || sameWeekAsEnd) {
-          return weekKey.replace('week', ''); // Found current week
+        if (sameWeekAsEnd && isAfter) {
+          return week + 1;
+        }
+        if (isInRange || sameWeekAsStart || sameWeekAsEnd && isBefore) {
+          return week;
         }
       }
     }
