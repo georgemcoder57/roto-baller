@@ -103,14 +103,14 @@ function App() {
   const [fvData, setFVData] = useState(null);
   const [sortModel, setSortModel] = useState();
   const [loggedUser, setLoggedUser] = useState(
-    // {
-    //   logged_in: true,
-    //   user: {
-    //     id: 132865,
-    //     name: "George Coder",
-    //     email: "GeorgeMCoder57@gmail.com"
-    //   }
-    // }
+    {
+      logged_in: true,
+      user: {
+        id: 2991,
+        name: "George Coder",
+        email: "GeorgeMCoder57@gmail.com"
+      }
+    }
   );
   const [currentWeek, setCurrentWeek] = useState();
   const [liveWeek, setLiveWeek] = useState(1);
@@ -134,12 +134,12 @@ function App() {
   const [gameResults, setGameResults] = useState([]);
 
   useEffect(() => {
-    console.log('initial fetch login');
     fetchLoginInfo();
     fetchTeamMemberList();
     fetchMoneyLine();
     fetchStats();
     fetchFV();
+    fetchTotalEntries();
     // fetchFullWeekSchedule();
   }, []);
 
@@ -220,15 +220,26 @@ function App() {
     }
   }, [scoreData, sortedByPointData]);
 
-  useEffect(() => {
-    if (scoreData && scoreData.length > 0 && currentWeek && currentWeek.value > 0) {
-      calculateGameResults();
-    }
-  }, [scoreData, currentWeek]);
-
   const fetchMoneyLine = async () => {
     const { data } = await API.get(`/money-line/`);
     setMoneyLine(data);
+  }
+
+  const isHide = () => {
+    if (totalEntries.length > 0) {
+      const targetEntries = totalEntries.filter((item) => {
+        const targetClickedCells = item.clicked_cells.filter((clickedItem) => clickedItem.week === currentWeek.value);
+        if (targetClickedCells.length > 0) {
+          return true;
+        }
+        return false;
+      });
+      if (!targetEntries || targetEntries && targetEntries.length <= 49) return true;
+      
+      return false;
+    }
+
+    return false;
   }
 
   const adjustGridHeight = () => {
@@ -247,7 +258,7 @@ function App() {
     setStats(data);
   }
   const fetchLoginInfo = () => {
-    // return;
+    return;
     fetch(WP_API.root + "custom/v1/user-status", {
       method: "GET",
       credentials: "include", // This is crucial for sending cookies
@@ -358,59 +369,22 @@ function App() {
   const filteredData = useMemo(() => {
     let customData = [...rowData];
 
-    if (!winData || winData.length === 0) {
-      return customData; // Don't render until winData is ready
-    }
-    if (pickData && pickData.results.length > 0) {
-      customData = customData.map((item) => {
-        const targetPickItem = pickData.results.find(
-          (pickItem) => pickItem.team === item.name
-        );
+    // if (winData && winData.results.length > 0) {
+    //   customData = customData.map((item) => {
+    //     const targetWinItem = winData.results.find(
+    //       (winItem) => winItem.abbreviation === item.name
+    //     );
 
-        if (targetPickItem) {
-          return {
-            ...item,
-            p_percent: targetPickItem.percentage,
-          };
-        }
+    //     if (targetWinItem) {
+    //       return {
+    //         ...item,
+    //         win_probability: targetWinItem.winProbability || 0,
+    //       };
+    //     }
 
-        return item;
-      });
-    }
-
-    if (fvData && fvData.length > 0) {
-      customData = customData.map((item) => {
-        const targetFVItem = fvData.find(
-          (fvItem) => fvItem.abbreviation === item.name
-        );
-
-        if (targetFVItem) {
-          return {
-            ...item,
-            fv: Number(targetFVItem.fv),
-          };
-        }
-
-        return item;
-      })
-    }
-
-    if (winData && winData.results.length > 0) {
-      customData = customData.map((item) => {
-        const targetWinItem = winData.results.find(
-          (winItem) => winItem.abbreviation === item.name
-        );
-
-        if (targetWinItem) {
-          return {
-            ...item,
-            win_probability: targetWinItem.winProbability || 0,
-          };
-        }
-
-        return item;
-      }).sort((a, b) => b.win_probability - a.win_probability);
-    }
+    //     return item;
+    //   }).sort((a, b) => b.win_probability - a.win_probability);
+    // }
 
     if (currentEntry.hide_on_grid) {
       customData = customData.filter(
@@ -428,6 +402,39 @@ function App() {
             } else {
               return item[colId]?.point ? parseFloat(item[colId].point) : null;
             }
+          }
+
+          if (colId === "win_probability") {
+            if (winData && winData.results.length > 0) {
+              const targetWinItem = winData.results.find(
+                (winItem) => winItem.abbreviation === item.name
+              );
+              if (targetWinItem) return targetWinItem.winProbability;
+              return null;
+            }
+            return null;
+          }
+
+          if (colId === "p_percent") {
+            if (pickData && pickData.results.length > 0) {
+              const targetPickItem = pickData.results.find(
+                (winItem) => winItem.abbreviation === item.name
+              );
+              if (targetPickItem) return targetPickItem.percentage;
+              return null;
+            }
+            return null;
+          }
+
+          if (colId === "fv") {
+            if (fvData && fvData.length > 0) {
+              const targetFVItem = fvData.find(
+                (fvItem) => fvItem.abbreviation === item.name
+              );
+              if (targetFVItem) return Number(targetFVItem.fv);
+              return null;
+            }
+            return null;
           }
           return item[colId] ?? null;
         };
@@ -451,15 +458,6 @@ function App() {
       }, 500);
     }
 
-    if (gameResults.length > 0) {
-      customData = customData.map((item) => {
-        return {
-          ...item,
-          result: gameResults.find((gameResult) => gameResult.name === item.name)?.isLost ? 'L' : 'W'
-        }
-      })
-    }
-
     if (moneyLine.length > 0) {
       customData.forEach((item) => {
         Array.from({ length: 18 }, (_, i) => i + 1)
@@ -480,21 +478,6 @@ function App() {
       })
     }
 
-    if (stats.length > 0) {
-      customData.forEach((item) => {
-        const targetStat = stats.find((stat) => stat.Team === item.name);
-        if (targetStat) {
-          const targetStatObj = {
-            wl: `${targetStat.Wins}-${targetStat.Losses}`,
-            streak: targetStat.Streak < 0 ? '1L' : `${targetStat.Streak}W`,
-            pfpa: `${targetStat.PointsFor} / ${targetStat.PointsAgainst}`
-          }
-
-          item.stats = targetStatObj;
-        }
-      })
-    }
-
     setLoadingStatus({
       text: 'Preparint Data',
       loading: false,
@@ -507,10 +490,15 @@ function App() {
     pickData,
     winData,
     sortModel,
-    gameResults,
     moneyLine,
     stats
   ]);
+
+  useEffect(() => {
+    if (scoreData && scoreData.length > 0 && currentWeek && currentWeek.value > 0 && filteredData.length > 0) {
+      calculateGameResults();
+    }
+  }, [scoreData, currentWeek, filteredData]);
 
   useEffect(() => {
     if (currentEntry.clicked_cells.length > 0) {
@@ -745,65 +733,103 @@ function App() {
       return "cell-selected";
     }
 
-    // if (
-    //   currentEntry.doublePicksStart > 0 &&
-    //   parseInt(params.colDef.field.replace(/\D/g, ""), 10) >=
-    //     currentEntry.doublePicksStart
-    // ) {
-    //   if (
-    //     currentEntry.clicked_cells.find(
-    //       (item) =>
-    //         item.colId === params.colDef.field &&
-    //         params.rowIndex !== item.rowindex
-    //     )
-    //   ) {
-    //     return "fake-disabled";
-    //   }
-    // }
+    if (
+      currentEntry.doublePicksStart > 0 &&
+      parseInt(params.colDef.field.replace(/\D/g, ""), 10) >=
+        currentEntry.doublePicksStart
+    ) {
+      const hasDoubledItems = currentEntry.clicked_cells.filter((item) => item.week >= currentEntry.doublePicksStart && item.colId === params.colDef.field);
+      if (hasDoubledItems.length < 2 &&
+        currentEntry.clicked_cells.find(
+          (item) =>
+            item.colId === params.colDef.field &&
+            params.rowIndex !== item.rowindex && !currentEntry.clicked_cells.find((item) => item.rowIndex === params.rowIndex)
+        )
+      ) {
+        return "fake-disabled";
+      }
+    }
 
     return "";
   };
 
   const customCellRenderer = (props, customClass) => {
-    const { node, colDef } = props;
-    const isSameRow = currentEntry.clicked_cells.find(
-      (item) => item.rowIndex === node.rowIndex
-    );
-    const isCurrentCell = currentEntry.clicked_cells.find(
-      (item) =>
-        node.rowIndex === item.rowIndex && colDef.field === item.colId
-    );
+    // const { node, colDef } = props;
+    // const isSameRow = currentEntry.clicked_cells.find(
+    //   (item) => item.rowIndex === node.rowIndex
+    // );
+    // const isCurrentCell = currentEntry.clicked_cells.find(
+    //   (item) =>
+    //     node.rowIndex === item.rowIndex && colDef.field === item.colId
+    // );
+    let cellValue = null;
+    if (customClass === 'win-percent' && winData && winData.results.length > 0) {
+      const targetWinItem = winData.results.find(
+        (winItem) => winItem.abbreviation === props.data.name
+      );
+      if (targetWinItem) {
+        cellValue = targetWinItem.winProbability;
+      }
+    }
+    if (customClass === 'pick-percent' && pickData && pickData.results.length > 0) {
+      const targetPickItem = pickData.results.find(
+        (pickItem) => pickItem.team === props.data.name
+      );
+      if (targetPickItem) {
+        cellValue = targetPickItem.percentage;
+      }
+    }
+
+    if (customClass === 'fv-value' && fvData.length > 0) {
+      const targetFVItem = fvData.find(
+        (fvItem) => fvItem.abbreviation === props.data.name
+      );
+      if (targetFVItem) {
+        cellValue = Number(targetFVItem.fv);
+      }
+    }
+
+    let targetStatObj = null;
+    if (stats.length > 0) {
+      const targetStat = stats.find((stat) => stat.Team === props.data.name);
+      if (targetStat) {
+        targetStatObj = {
+          wl: `${targetStat.Wins}-${targetStat.Losses}`,
+          streak: targetStat.Streak < 0 ? '1L' : `${targetStat.Streak}W`,
+          pfpa: `${targetStat.PointsFor} / ${targetStat.PointsAgainst}`
+        }
+      }
+    }
 
     return (
       <div className={customClass}>
-        {currentEntry.teams_used.includes(props.data.name) && (
+        {/* {currentEntry.teams_used.includes(props.data.name) && (
           <div className="red-bar-horizontal" />
         )}
         {!isCurrentCell && isSameRow && (
           <div className="red-bar-horizontal" />
-        )}
-
+        )} */}
         {customClass === 'win-percent' && (
-          props.value > 0 ? `${props.value}%` : '-'
+          cellValue > 0 ? `${cellValue}%` : '-'
         )}
         {customClass === 'pick-percent' && (
-          props.value > 0 ? `${props.value}%` : '-'
+          cellValue > 0 ? `${cellValue}%` : '-'
         )}
         {customClass === 'fv-value' && (
-          props.value
+          cellValue
         )}
-        {customClass === 'stats-values' && (
+        {customClass === 'stats-values' && targetStatObj && (
           <>
             <div className="stats-values-top">
               <div className="wl">
-                {props.value?.wl}
+                {targetStatObj.wl}
               </div>
               <div className="streak">
-                {props.value?.streak}
+                {targetStatObj.streak}
               </div>
             </div>
             <div className="stats-values-bottom">
-              {props.value?.pfpa}
+              {targetStatObj.pfpa}
             </div>
           </>
         )}
@@ -819,10 +845,18 @@ function App() {
       .filter((weekNum) => weekNum >= currentWeek.value)
       .map((weekNum) => ({
         headerName: `${weekNum}`,
+        headerClass: (params) => {
+          const isSameCol = currentEntry.clicked_cells.find((item) => item.colId === params.colDef.field);
+          if (isSameCol) {
+            return 'selected-column';
+          }
+          return '';
+        },
         field: `week${weekNum}`,
         cellClass: (params) => getCellClass(params),
         cellClassRules: {
           "cell-disabled": (params) => isDisabled(params),
+          // "cell-disabled-fake": (params) => isDisabledFake(params),
         },
         sortable: true,
         comparator: (nodeA, nodeB) => {
@@ -956,10 +990,15 @@ function App() {
             (item) =>
               node.rowIndex === item.rowIndex && colDef.field === item.colId
           );
+          let targetResult = null;
+
+          if (gameResults.length > 0) {
+            targetResult = gameResults.find((gameResult) => gameResult.name === props.value);
+          }
 
           return (
             <div
-              className={`team-name ${currentEntry.teams_used.includes(props.value)
+              className={`team-name ${currentEntry.teams_used.includes(props.value) || (!isCurrentCell && isSameRow)
                 ? "cell-selected"
                 : ""
                 }`}
@@ -970,7 +1009,7 @@ function App() {
               {!isCurrentCell && isSameRow && (
                 <div className="red-bar-underline" />
               )}
-              {props.value} {props.data.result && <span className={props.data.result === 'W' ? 'win' : 'lost'}>{`(${props.data.result})`}</span>}
+              {props.value} {targetResult && <span className={targetResult.isLost ? 'lost' : 'win'}>{`(${targetResult.isLost ? 'L' : 'W'})`}</span>}
             </div>
           );
         },
@@ -1002,7 +1041,7 @@ function App() {
         headerTooltip:
           "Percentage that each team is picked in a given week, based on all RotoBaller Survivor Tool users. Resets each week once a critical mass of picks have been made.",
         sortable: true,
-        hide: !pickData || pickData.results && pickData.results.length < 50,
+        hide: isHide(),
         comparator: (valueA, valueB) => {
           return valueA - valueB;
         },
@@ -1034,7 +1073,7 @@ function App() {
       },
       ...weekCols,
     ];
-  }, [showOptions, currentWeek, currentEntry, isMobile, window.location.href, loadedEntries]);
+  }, [showOptions, currentWeek, currentEntry, isMobile, window.location.href, loadedEntries, gameResults, pickData, winData, fvData, stats]);
 
   const fetchScoreData = async () => {
     try {
@@ -1207,7 +1246,6 @@ function App() {
         text: 'Full week schedule loaded',
         loading: false,
       });
-      console.log('login info fetch after full week schedule loaded');
       fetchLoginInfo();
     } catch (e) {
       console.log(e);
@@ -1219,11 +1257,11 @@ function App() {
   };
 
   const handleChangeWeek = (value, option) => {
-    if (value < liveWeek) {
-      setLockPick(true);
-    } else {
-      setLockPick(false);
-    }
+    // if (value < liveWeek) {
+    //   setLockPick(true);
+    // } else {
+    //   setLockPick(false);
+    // }
     setIsDirty(true);
     localStorage.setItem('currentWeek', JSON.stringify(option));
     setCurrentWeek(option);
@@ -1294,7 +1332,6 @@ function App() {
 
   const onGridReady = useCallback(({ api }) => {
     gridApiRef.current = api;
-    console.log('on grid ready');
     fetchLoginInfo();
   }, []);
 
@@ -1444,6 +1481,7 @@ function App() {
       parseInt(params.colDef.field.replace(/\D/g, ""), 10) >=
       currentEntry.doublePicksStart
     ) {
+
       if (
         currentEntry.clicked_cells.find(
           (item) => item.rowIndex === params.rowIndex
@@ -1460,7 +1498,7 @@ function App() {
             params.rowIndex !== item.rowindex
         )
       ) {
-        return false;
+        return true;
       }
     } else {
       if (
@@ -1645,7 +1683,7 @@ function App() {
 
   const fetchWinProbability = async () => {
     try {
-      setWinData([]);
+      setWinData(null);
       const { data } = await API.get(`/win-probability/${currentWeek.value}`);
       setWinData(data);
       setLoadingStatus({
