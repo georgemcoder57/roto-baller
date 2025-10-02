@@ -350,6 +350,17 @@ export const GridWrapper = styled.div`
   position: relative;
   margin: ${(props) => (props.simple ? "auto !important" : "0 !important")};
 
+  .ag-hidden {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    visibility: hidden !important;
+  }
+
   & > div:first-child {
     border: none !important;
   }
@@ -714,6 +725,10 @@ export const PanelTop = styled.div`
 
     .panel-top-right {
       width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: flex-start;
 
       .ant-select {
         width: 100% !important;

@@ -108,7 +108,7 @@ function App() {
     //   user: {
     //     id: 2991,
     //     name: "George Coder",
-    //     email: "GeorgeMCoder57@gmail.com"
+    //     email: "alex@rotoballer.com"
     //   }
     // }
   );
@@ -374,23 +374,6 @@ function App() {
   const filteredData = useMemo(() => {
     let customData = [...rowData];
 
-    // if (winData && winData.results.length > 0) {
-    //   customData = customData.map((item) => {
-    //     const targetWinItem = winData.results.find(
-    //       (winItem) => winItem.abbreviation === item.name
-    //     );
-
-    //     if (targetWinItem) {
-    //       return {
-    //         ...item,
-    //         win_probability: targetWinItem.winProbability || 0,
-    //       };
-    //     }
-
-    //     return item;
-    //   }).sort((a, b) => b.win_probability - a.win_probability);
-    // }
-
     if (currentEntry.hide_on_grid) {
       customData = customData.filter(
         (item) => !currentEntry.teams_used.includes(item.name)
@@ -410,20 +393,19 @@ function App() {
           }
 
           if (colId === "win_probability") {
-            if (winData && winData.results.length > 0) {
-              const targetWinItem = winData.results.find(
+            if (winData && winData.length > 0) {
+              const targetWinItem = winData.find(
                 (winItem) => winItem.abbreviation === item.name
               );
-              if (targetWinItem) return targetWinItem.winProbability;
+              if (targetWinItem) return targetWinItem.winProbabilities[currentWeek.value];
               return null;
             }
             return null;
           }
-
           if (colId === "p_percent") {
             if (pickData && pickData.results.length > 0) {
               const targetPickItem = pickData.results.find(
-                (winItem) => winItem.abbreviation === item.name
+                (winItem) => winItem.team === item.name
               );
               if (targetPickItem) return targetPickItem.percentage;
               return null;
@@ -472,11 +454,13 @@ function App() {
               const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.AwayTeamName === item.name.replace('@', '') && moneyLineItem.HomeTeamName === item[weekHeader].name.replace('@', ''));
               if (targetMoneyLineObj) {
                 item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].AwayMoneyLine;
+                item[weekHeader].point = targetMoneyLineObj.PregameOdds[0].AwayPointSpread;
               }
             } else {
               const targetMoneyLineObj = moneyLine.find((moneyLineItem) => moneyLineItem.HomeTeamName === item.name.replace('@', '') && moneyLineItem.AwayTeamName === item[weekHeader].name.replace('@', ''));
               if (targetMoneyLineObj) {
                 item[weekHeader].moneyLine = targetMoneyLineObj.PregameOdds[0].HomeMoneyLine;
+                item[weekHeader].point = targetMoneyLineObj.PregameOdds[0].HomePointSpread;
               }
             }
           });
@@ -732,7 +716,8 @@ function App() {
       currentEntry.clicked_cells.find(
         (item) =>
           item.colId === params.colDef.field &&
-          item.rowIndex === params.rowIndex
+          item.rowIndex === params.rowIndex &&
+          item.team === params.data.name
       )
     ) {
       return "cell-selected";
@@ -768,12 +753,12 @@ function App() {
     //     node.rowIndex === item.rowIndex && colDef.field === item.colId
     // );
     let cellValue = null;
-    if (customClass === 'win-percent' && winData && winData.results.length > 0) {
-      const targetWinItem = winData.results.find(
+    if (customClass === 'win-percent' && winData && winData.length > 0) {
+      const targetWinItem = winData.find(
         (winItem) => winItem.abbreviation === props.data.name
       );
       if (targetWinItem) {
-        cellValue = targetWinItem.winProbability;
+        cellValue = targetWinItem.winProbabilities[currentWeek.value];
       }
     }
     if (customClass === 'pick-percent' && pickData && pickData.results.length > 0) {
@@ -864,17 +849,12 @@ function App() {
           // "cell-disabled-fake": (params) => isDisabledFake(params),
         },
         sortable: true,
-        comparator: (nodeA, nodeB) => {
-          const pointA = parseFloat(nodeA.point) ?? 0;
-          const pointB = parseFloat(nodeB.point) ?? 0;
-          return pointA - pointB;
-        },
         cellRenderer: (props) => {
           const { node, colDef } = props;
           const isSameRow = currentEntry.clicked_cells.find(
             (item) => item.rowIndex === node.rowIndex
           );
-          const isSameCol = currentEntry.clicked_cells.find(
+          let isSameCol = currentEntry.clicked_cells.find(
             (item) =>
               item.colId === colDef.field && node.rowIndex !== item.rowindex
           );
@@ -882,9 +862,26 @@ function App() {
             (item) =>
               node.rowIndex === item.rowIndex && colDef.field === item.colId
           );
+          const isBothSame = isSameRow && currentEntry.clicked_cells.find((item) => item.team === props.data.name);
           const doubled = currentEntry.doublePicksStart > 0 && parseInt(colDef.field.replace(/\D/g, ""), 10) >= currentEntry.doublePicksStart;
           const hasDoubledItems = currentEntry.clicked_cells.filter((item) => item.week >= currentEntry.doublePicksStart && item.colId === colDef.field);
           const cellClassName = getClassName(props.data[`week${weekNum}`]);
+
+          let isSameColumnWithUsedTeam = false;
+          currentEntry.teams_used.forEach((team_used) => {
+            const clicked_cell = currentEntry.clicked_cells.find((item) => item.team === team_used);
+            if (clicked_cell && clicked_cell.colId === colDef.field && currentEntry.hide_on_grid) {
+              isSameColumnWithUsedTeam = true;
+            }
+          })
+          let winValue = null;
+          if (winData && winData.length > 0) {
+            const targetWinData = winData.find((item) => item.abbreviation === props.data.name);
+            if (targetWinData) {
+              winValue = targetWinData.winProbabilities[Number(colDef.headerName)];
+            }
+          }
+
           return (
             <div
               className={cellClassName}
@@ -897,10 +894,10 @@ function App() {
               {currentEntry.teams_used.includes(props.data.name) && (
                 <div className="red-bar-horizontal" />
               )}
-              {!isCurrentCell && isSameRow && (
+              {!isCurrentCell && isSameRow && isBothSame && (
                 <div className="red-bar-horizontal" />
               )}
-              {!isCurrentCell && isSameCol && (doubled ? hasDoubledItems.length === 2 : hasDoubledItems.length >= 0) && <div className={`red-bar`} />}
+              {!isCurrentCell && isSameCol && !isSameColumnWithUsedTeam && (doubled ? hasDoubledItems.length === 2 : hasDoubledItems.length >= 0) && <div className={`red-bar`} />}
               <div className="name-value">
                 {props.data[`week${weekNum}`].name}
               </div>
@@ -912,6 +909,8 @@ function App() {
                       : props.data[`week${weekNum}`].point
                     : ""
                     }`}
+                </div> : showOptions.lineType === 'rotoballer-win' ? <div className="point-value">
+                  {`${winValue}%`}
                 </div> : <div className="point-value">
                   {`${props.data[`week${weekNum}`].moneyLine
                     ? props.data[`week${weekNum}`].moneyLine > 0
@@ -995,6 +994,8 @@ function App() {
             (item) =>
               node.rowIndex === item.rowIndex && colDef.field === item.colId
           );
+          const isBothSame = isSameRow && currentEntry.clicked_cells.find((item) => item.team === props.data.name);
+
           let targetResult = null;
 
           if (gameResults.length > 0) {
@@ -1003,7 +1004,7 @@ function App() {
 
           return (
             <div
-              className={`team-name ${currentEntry.teams_used.includes(props.value) || (!isCurrentCell && isSameRow)
+              className={`team-name ${currentEntry.teams_used.includes(props.value) || (!isCurrentCell && isSameRow && isBothSame)
                 ? "cell-selected"
                 : ""
                 }`}
@@ -1011,7 +1012,7 @@ function App() {
               {currentEntry.teams_used.includes(props.value) && (
                 <div className="red-bar-underline" />
               )}
-              {!isCurrentCell && isSameRow && (
+              {!isCurrentCell && isSameRow && isBothSame && (
                 <div className="red-bar-underline" />
               )}
               {props.value} {targetResult && <span className={targetResult.isLost ? 'lost' : 'win'}>{`(${targetResult.isLost ? 'L' : 'W'})`}</span>}
@@ -1202,13 +1203,11 @@ function App() {
         row.ev = team.ev;
         row.win_probability = team.win_probability;
         row.p_percent = team.p_percent;
-
         // For each week
         team.games.forEach((game) => {
           row[`week${game.Week}`] = {};
           if (game.GlobalHomeTeamID !== team.id) {
             row[`week${game.Week}`].name = "@" + game.HomeTeam;
-            row[`week${game.Week}`].point = (-game.PointSpread || 0).toString(); // point spread is referring to home team
             row[`week${game.Week}`].isAway = true;
           } else if (game.AwayTeam == "BYE") {
             // a "BYE" in not a game + no teams called "BYE"
@@ -1216,7 +1215,6 @@ function App() {
             row[`week${game.Week}`].isAway = false;
           } else {
             row[`week${game.Week}`].name = game.AwayTeam;
-            row[`week${game.Week}`].point = (game.PointSpread || 0).toString(); // point spread is referring to away team
             row[`week${game.Week}`].isAway = false;
           }
 
@@ -1690,7 +1688,9 @@ function App() {
     try {
       setWinData(null);
       const { data } = await API.get(`/win-probability/${currentWeek.value}`);
-      setWinData(data);
+      if (data.results) {
+        setWinData(data.results);
+      }
       setLoadingStatus({
         text: 'Loading',
         loading: false
@@ -1931,8 +1931,12 @@ function App() {
               </EntryButtons>
             </div>
             {
-              loggedUser?.logged_in === true && <div className="panel-top-right">
-                <div className="entry-name">Saved Entries</div>
+              loggedUser?.logged_in === true &&
+              <div className="panel-top-right">
+                <div className="entry-name">
+                  Saved Entries 
+                  {loggedUser && loggedUser.user.email === 'alex@rotoballer.com' && totalEntries.length > 0 && ` (Total: ${totalEntries.length})`}
+                </div>
                 <Select
                   options={loadedEntries}
                   value={currentEntry.id}
@@ -1944,6 +1948,22 @@ function App() {
                   }}
                   placeholder="Saved Entries"
                 />
+                {
+                  loggedUser && loggedUser.user.email === 'alex@rotoballer.com' && totalEntries.length > 0 &&
+                  <div>
+                    {
+                      `${totalEntries.filter((entry) => {  
+                        const hasClick = entry.clicked_cells.find((cell) => cell.week === currentWeek.value);
+                        if (hasClick) {
+                          return true;
+                        } else {
+                          return false;
+                        }
+                      }
+                      ).length} entries for this week`
+                    }
+                  </div>
+                }
               </div>
             }
           </PanelTop>
@@ -2051,6 +2071,9 @@ function App() {
               }, {
                 label: 'Money Line',
                 value: 'moneyLine'
+              }, {
+                label: 'RotoBaller W%',
+                value: 'rotoballer-win'
               }]}
               value={showOptions.lineType}
               onChange={handleChangeLineType}
@@ -2122,6 +2145,18 @@ function App() {
             headerHeight={31}
             onGridReady={onGridReady}
             onCellClicked={handleCellClick}
+            // getRowClass={(params) => {
+            //   if (currentEntry.hide_on_grid && currentEntry.teams_used.includes(params.data.name)) {
+            //     return "ag-hidden"; // AG Grid’s internal hidden class
+            //   }
+            //   return "";
+            // }}
+            getRowHeight={(params) => {
+              if (currentEntry.hide_on_grid && currentEntry.teams_used.includes(params.data.name)) {
+                return 0; // row takes no space
+              }
+              return 31; // or your normal row height
+            }}
             tooltipShowDelay={0} // ← show immediately
             enableBrowserTooltips={false}
             onSortChanged={handleSortChange}
@@ -2130,6 +2165,9 @@ function App() {
               sortingOrder: ["asc", "desc"], // disables 3rd state
               suppressMovable: true,
             }}
+            // suppressRowHover={true}
+            // suppressRowTransform={true}
+            // suppressRowVirtualisation={true} 
           />
         }
       </GridWrapper>
