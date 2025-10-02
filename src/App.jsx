@@ -387,8 +387,20 @@ function App() {
           if (colId.includes('week')) {
             if (showOptions.lineType === 'moneyLine') {
               return item[colId]?.moneyLine ? parseFloat(item[colId].moneyLine) : null;
-            } else {
+            } else if (showOptions.lineType === 'spreads') {
               return item[colId]?.point ? parseFloat(item[colId].point) : null;
+            }
+            else {
+              if (winData && winData.length > 0) {
+                const targetWinItem = winData.find(
+                  (winItem) => winItem.abbreviation === item.name
+                );
+                if (targetWinItem) {
+                  return targetWinItem.winProbabilities[parseInt(colId.replace("week", ""), 10)];
+                }
+                return null;
+              }
+              return null;
             }
           }
 
@@ -910,7 +922,7 @@ function App() {
                     : ""
                     }`}
                 </div> : showOptions.lineType === 'rotoballer-win' ? <div className="point-value">
-                  {`${winValue}%`}
+                  {winValue ? `${winValue}%` : ''}
                 </div> : <div className="point-value">
                   {`${props.data[`week${weekNum}`].moneyLine
                     ? props.data[`week${weekNum}`].moneyLine > 0
