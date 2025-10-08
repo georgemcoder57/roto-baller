@@ -103,14 +103,14 @@ function App() {
   const [fvData, setFVData] = useState(null);
   const [sortModel, setSortModel] = useState();
   const [loggedUser, setLoggedUser] = useState(
-    // {
-    //   logged_in: true,
-    //   user: {
-    //     id: 2991,
-    //     name: "George Coder",
-    //     email: "alex@rotoballer.com"
-    //   }
-    // }
+    {
+      logged_in: true,
+      user: {
+        id: 2991,
+        name: "George Coder",
+        email: "alex@rotoballer.com"
+      }
+    }
   );
   const [currentWeek, setCurrentWeek] = useState();
   const [liveWeek, setLiveWeek] = useState(1);
@@ -129,7 +129,7 @@ function App() {
     divisional: true,
     thursday: true,
     monday: true,
-    lineType: 'moneyLine',
+    lineType: 'rotoballer-win',
   });
   const [gameResults, setGameResults] = useState([]);
 
@@ -263,7 +263,7 @@ function App() {
     setStats(data);
   }
   const fetchLoginInfo = () => {
-    // return;
+    return;
     fetch(WP_API.root + "custom/v1/user-status", {
       method: "GET",
       credentials: "include", // This is crucial for sending cookies
@@ -646,7 +646,7 @@ function App() {
     }
   }
 
-  const getBackgroundColor = (cellData) => {
+  const getBackgroundColor = (cellData, winValue) => {
     if (showOptions.lineType === 'spreads') {
       const point = cellData.point;
       if (point > -3) {
@@ -669,7 +669,7 @@ function App() {
       } else if (point <= -10) {
         return "#4cff4c";
       }
-    } else {
+    } else if (showOptions.lineType === 'moneyLine') {
       const point = cellData.moneyLine;
       if (point > -175) {
         return "#fdfffd";
@@ -688,6 +688,26 @@ function App() {
         const backgroundColor = `rgb(${r}, ${g}, ${b})`;
         return backgroundColor;
       } else if (point <= -400) {
+        return "#4cff4c";
+      }
+    } else {
+      if (winValue <= 53 || !winValue) {
+        return "#fdfffd";
+      } else if (winValue > 53 && winValue <= 62) {
+        // Gradient range: map point from [-10, -3] to [0, 1]
+        const t = (62 - winValue) / 9; // 0 at -3, 1 at -10
+
+        // Interpolate between #fdfffd and #4cff4c
+        const startColor = [253, 255, 253]; // RGB of #fdfffd
+        const endColor = [76, 255, 76]; // RGB of #4cff4c
+
+        const r = Math.round(startColor[0] + (endColor[0] - startColor[0]) * t);
+        const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * t);
+        const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * t);
+
+        const backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        return backgroundColor;
+      } else if (winValue > 62) {
         return "#4cff4c";
       }
     }
@@ -899,7 +919,7 @@ function App() {
               className={cellClassName}
               style={{
                 backgroundColor: cellClassName.includes('gray') ? 'white' : getBackgroundColor(
-                  props.data[`week${weekNum}`]
+                  props.data[`week${weekNum}`], winValue
                 ),
               }}
             >
@@ -2090,7 +2110,7 @@ function App() {
               value={showOptions.lineType}
               onChange={handleChangeLineType}
               className="line-select"
-              style={{ width: "170px", height: "42px" }}
+              style={{ width: "190px", height: "42px" }}
             />
           </FilterButtons>
         </FilterWrapper>
@@ -2134,7 +2154,10 @@ function App() {
             }, {
               label: 'Money Line',
               value: 'moneyLine'
-            }]}
+            }, {
+                label: 'RotoBaller W%',
+                value: 'rotoballer-win'
+              }]}
             value={showOptions.lineType}
             onChange={handleChangeLineType}
             className="line-select"
