@@ -103,14 +103,14 @@ function App() {
   const [fvData, setFVData] = useState(null);
   const [sortModel, setSortModel] = useState();
   const [loggedUser, setLoggedUser] = useState(
-    {
-      logged_in: true,
-      user: {
-        id: 2991,
-        name: "George Coder",
-        email: "alex@rotoballer.com"
-      }
-    }
+    // {
+    //   logged_in: true,
+    //   user: {
+    //     id: 2991,
+    //     name: "George Coder",
+    //     email: "alex@rotoballer.com"
+    //   }
+    // }
   );
   const [currentWeek, setCurrentWeek] = useState();
   const [liveWeek, setLiveWeek] = useState(1);
@@ -263,7 +263,7 @@ function App() {
     setStats(data);
   }
   const fetchLoginInfo = () => {
-    return;
+    // return;
     fetch(WP_API.root + "custom/v1/user-status", {
       method: "GET",
       credentials: "include", // This is crucial for sending cookies
@@ -691,13 +691,13 @@ function App() {
         return "#4cff4c";
       }
     } else {
-      if (winValue <= 53 || !winValue) {
-        return "#fdfffd";
-      } else if (winValue > 53 && winValue <= 62) {
-        // Gradient range: map point from [-10, -3] to [0, 1]
-        const t = (62 - winValue) / 9; // 0 at -3, 1 at -10
+      if (!winValue || winValue < 53) {
+        return "#fdfffd"; // No color (white)
+      } else if (winValue >= 53 && winValue <= 62) {
+        // Map winValue from [53, 62] → [0, 1]
+        const t = (winValue - 53) / (62 - 53);
 
-        // Interpolate between #fdfffd and #4cff4c
+        // Interpolate between #fdfffd (light green start) and #4cff4c (dark green end)
         const startColor = [253, 255, 253]; // RGB of #fdfffd
         const endColor = [76, 255, 76]; // RGB of #4cff4c
 
@@ -705,10 +705,9 @@ function App() {
         const g = Math.round(startColor[1] + (endColor[1] - startColor[1]) * t);
         const b = Math.round(startColor[2] + (endColor[2] - startColor[2]) * t);
 
-        const backgroundColor = `rgb(${r}, ${g}, ${b})`;
-        return backgroundColor;
-      } else if (winValue > 62) {
-        return "#4cff4c";
+        return `rgb(${r}, ${g}, ${b})`;
+      } else {
+        return "#4cff4c"; // Over 62% = dark green
       }
     }
   };
@@ -817,7 +816,7 @@ function App() {
       if (targetStat) {
         targetStatObj = {
           wl: `${targetStat.Wins}-${targetStat.Losses}`,
-          streak: targetStat.Streak < 0 ? '1L' : `${targetStat.Streak}W`,
+          streak: targetStat.Streak < 0 ? `${Math.abs(targetStat.Streak)}L` : `${targetStat.Streak}W`,
           pfpa: `${targetStat.PointsFor} / ${targetStat.PointsAgainst}`
         }
       }
@@ -1523,7 +1522,21 @@ function App() {
         ) ||
         currentEntry.teams_used.includes(params.data.name)
       ) {
-        return true;
+        let isSameColumnWithUsedTeam = false;
+        currentEntry.teams_used.forEach((team_used) => {
+          const clicked_cell = currentEntry.clicked_cells.find((item) => item.team === team_used);
+          if (clicked_cell && clicked_cell.colId === params.colDef.field && currentEntry.hide_on_grid) {
+            isSameColumnWithUsedTeam = true;
+          }
+          if (clicked_cell && clicked_cell.rowIndex === params.rowIndex && currentEntry.hide_on_grid) {
+            isSameColumnWithUsedTeam = true;
+          }
+        })
+        if (isSameColumnWithUsedTeam) {
+          return false;
+        } else {
+          return true;
+        }
       }
 
       if (
@@ -1533,7 +1546,21 @@ function App() {
             params.rowIndex !== item.rowindex
         )
       ) {
-        return true;
+        let isSameColumnWithUsedTeam = false;
+        currentEntry.teams_used.forEach((team_used) => {
+          const clicked_cell = currentEntry.clicked_cells.find((item) => item.team === team_used);
+          if (clicked_cell && clicked_cell.colId === params.colDef.field && currentEntry.hide_on_grid) {
+            isSameColumnWithUsedTeam = true;
+          }
+          if (clicked_cell && clicked_cell.rowIndex === params.rowIndex && currentEntry.hide_on_grid) {
+            isSameColumnWithUsedTeam = true;
+          }
+        })
+        if (isSameColumnWithUsedTeam) {
+          return false;
+        } else {
+          return true;
+        }
       }
     } else {
       if (
@@ -1548,7 +1575,21 @@ function App() {
             params.rowIndex !== item.rowindex
         )
       ) {
-        return true;
+        let isSameColumnWithUsedTeam = false;
+        currentEntry.teams_used.forEach((team_used) => {
+          const clicked_cell = currentEntry.clicked_cells.find((item) => item.team === team_used);
+          if (clicked_cell && clicked_cell.colId === params.colDef.field && currentEntry.hide_on_grid) {
+            isSameColumnWithUsedTeam = true;
+          }
+          if (clicked_cell && clicked_cell.rowIndex === params.rowIndex && currentEntry.hide_on_grid) {
+            isSameColumnWithUsedTeam = true;
+          }
+        })
+        if (isSameColumnWithUsedTeam) {
+          return false;
+        } else {
+          return true;
+        }
       }
     }
 
@@ -2110,7 +2151,7 @@ function App() {
               value={showOptions.lineType}
               onChange={handleChangeLineType}
               className="line-select"
-              style={{ width: "190px", height: "42px" }}
+              style={{ width: "190px", height: "42px", minWidth: '190px' }}
             />
           </FilterButtons>
         </FilterWrapper>
